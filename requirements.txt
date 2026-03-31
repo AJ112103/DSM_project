@@ -1,0 +1,14 @@
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+statsmodels
+xgboost
+playwright
+streamlit
+langchain
+langchain-experimental
+langchain-openai
+sqlalchemy
+openpyxl

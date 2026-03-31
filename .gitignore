@@ -1,0 +1,6 @@
+.venv/
+.env
+
+dsm_project.db
+
+main.txt
