@@ -23,6 +23,10 @@ DOWNLOAD_DIR.mkdir(exist_ok=True)
 
 # The base API URLs provided by the user, we will strip `&pageno=X` and append it dynamically
 API_ENDPOINTS = [
+    {
+        "name": "RBI_Weekly_Statistics_Weekly_Aggregates",
+        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2PW9Orcet0i2dTV34X8oFhD31-dMIxGbDiy3IisQRLKPdEWn9yUOEEHI-8JyJsne2Dj5P-XAqhGKyXl2EUr57_pTkWxS4y_8E3xw_m2DUSk6K3aPLiloelG76zrB6ONN7Qgmp2jgksXbV9xLBl8WdkIcIbzol8gPXKtR7rMy3lWgiHTiQpHBLhYJKHpfq301K56u3bJW6x4HmtWYWN-hFV6gA==&ind=I7494_5,I7494_6,I7494_7&dim=Country,Year,Month,CalendarDay"
+    },
     # 
     {
         "name": "RBI_Liabilities_and_Assets",
@@ -37,8 +41,20 @@ API_ENDPOINTS = [
     # 
     # 
     {
-        "name": "Bank_Credit_and_Investments",
-        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2RDlCtsWCVfdZrQtqM2nOMi6XOvgrhqAyCkH6SsR0xLsWMeZ2T5FR75wE8hSCci2YUQ7P4lt5z8YdP8klpYlwUEKMXYiVseUorURgDpkymLpPfdChu435GrqRD0B3rhtWXcqZ-jFvzpLaOT0eb1jzu2Ml5Jk-dWfr9L2T_ByzFcjN0XlM1GZMMpZpUlHe-LIIQZZH13f8PO2yAR6J32pScsCw==&ind=I6725_5,I6725_6,I6725_7,I6725_8,I6725_9,I6725_10,I6725_11,I6725_12,I6725_13,I6725_14,I6725_15,I6725_16,I6725_17,I6725_18,I6725_19,I6725_20,I6725_21&dim=Country,Year,Month,D6725_4"
+        "name": "Commercial_Paper_Details",
+        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2gy-Vbb6mfUuVgE7sVs40Y8hscxX6c6u7O9RQu4wwhBHfqHsKtW0f0wLLgtsegGA0LDnNCK-yRWFs0VELt6Eb3fELAvcaAoaed3_Eg9I0ZMO3ybUPkE6Yhw7nqkyKUorx-8y3zzoBUtf1y1q9pgR2eHOffaNw19jRXot3RcOslAGdYKuX7YS97OmVc4hJaPAMPv1oNmisqngoKrFGrLuYD8mQ==&ind=I7505_5,I7505_6,I7505_7,I7505_8&dim=Country,Year,Month,D7505_4"
+    },
+    # 
+    # 
+    {
+        "name": "Treasury_Bills_Details",
+        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2hH98xgirlGFsLmFuHc06Jl45KJbYqcn2tYP6D_o2UqLXHn3KA7HmXF02cbem3d51W9GgbqPl3jU9i9gScYZyoJsHAoe_g1r23c1A3tkwHe1cmxQnETlfUOSUTfiKFX3Ckje8VlUdAqnOsCf5gQdepXl9vzlZJLgdpx22ycGw53WPtGUYkhACpC3VlSX67X4doDKS-9y5QpfFy9Z5nIP3d_MA==&ind=I7504_7,I7504_8,I7504_9,I7504_10&dim=Country,Year,Quarter,Month,WeekCode,Week,D7504_6"
+    },
+    # 
+    # 
+    {
+        "name": "Central_Government_Dated_Securities",
+        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2hYrDSLLgyIKv3GU4vYl6CEB65teOFCjEdXFJErYmIzqAwwExO1-hbE6I-9j1kgVaONoKvytK5d_sv4fJfVcV5R8UnQt3WTvr7IXyK4Z8icqhAa8mc0t9UllSNVEDUFpYDO9S-uC3sdtUpzvh8kI__dT7vDtvWJemj8VYs4RmSJGf21_gEiaA6GUh4ejDhKhSFFcqFNq66oVwfE6z4c5jIccw==&ind=I7503_6,I7503_7,I7503_8,I7503_9,I7503_10&dim=Country,Year,Quarter,Month,WeekCode,Week"
     },
     # 
     # 
@@ -47,20 +63,13 @@ API_ENDPOINTS = [
         "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2hspL5YrgRlcuUIEdBepzkjyHYHoAflFZyXBGaCdn2qHboTJ4cEyiAAYp8A2lbUbEufsUyYudTwwk7j6mOVm3yHH5DYElEisNvJ2YbT2__PLgKFILFIZNN1GymSCOy3rNGglxSKQxOh2UvRTvdUZUkuJX_oU9YXxBfkwyROs4SOwyU_eAAkYc9a16ckiyFqK8-cRYYtrgGoVQaHRzRnyUdsow==&ind=I7500_4,I7500_5,I7500_6,I7500_7,I7500_8,I7500_9,I7500_10,I7500_11,I7500_12&dim=Country,Year,Month"
     },
     # 
+    # 
     {
-        "name": "Financial_Indicator_Monthly_4660",
-        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2SCpA-5AWjHMEN-Ki5l72q3JObke7_10ktWDf2k7fbOog-AkjgSMTT4r0bcIO-yViEI0DAPVLXmGmy07pqelUPVVl2Hmw0i5NR5gSZEJHFnbfqwPDLLz49bfpPEjwqMGEodwpCicTeIG8bgmzXk-qvTQZV72GCmUVQdV3kj063Aqa8VWNv5JaobZYWEgbYUnyxWH1rgTfoA3xREE6d_im-1iw==&ind=I4660_13&dim=Country,Year,Month,D4660_4,D4660_5,D4660_6,D4660_7,D4660_8,D4660_9,D4660_10,D4660_11,D4660_12"
-    },
-    {
-        "name": "Certificates_of_Deposit_Details",
-        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2hhSzaOtw34cT1vb2XTO_al7MOUOLK34bMe4oGxHi5b122c4PAxVN42FX6IBtLXo-KaQbCx_KfH3yrXg45H8iRbt7ASXYr85v7OztR_00Krt99cOokyYKQ1gGWFUA9FNzvbOtvA3DOqwFBDfM3s_OMi9nGHv1jTrWNW56CyAenr9FVkGJgnPuYMUF_JqN1CeMiSq55jTQB6wK1VVkta5Tv5sw==&ind=I7501_6,I7501_7,I7501_8,I7501_9&dim=Country,Year,Quarter,Month,FortnightCode,Fortnight"
-    },
-    {
-        "name": "Treasury_Bills_Details",
-        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2hH98xgirlGFsLmFuHc06Jl45KJbYqcn2tYP6D_o2UqLXHn3KA7HmXF02cbem3d51W9GgbqPl3jU9i9gScYZyoJsHAoe_g1r23c1A3tkwHe1cmxQnETlfUOSUTfiKFX3Ckje8VlUdAqnOsCf5gQdepXl9vzlZJLgdpx22ycGw53WPtGUYkhACpC3VlSX67X4doDKS-9y5QpfFy9Z5nIP3d_MA==&ind=I7504_7,I7504_8,I7504_9,I7504_10&dim=Country,Year,Quarter,Month,WeekCode,Week,D7504_6"
-    },
+        "name": "Market_Repo_Transactions",
+        "url": "https://loadqa.ndapapi.com/v1/openapi?API_Key=gAAAAABpy2h10dj2Z1gmBvzFOI_IoAdDPl5yjRZl_ZERs8t4qv5sI7YCJZHucV1kD9n1Kn41K0guNxtpLsMZMAO3b46EUxOvuud7nrw6UdYO4bnsBJUAtXFYtxZC70hzB1mOwmXrdUhfT__ZIo4wOYiTUQfDKdvUwsJLHdpoy4XX04q4KsgOoU8mePdPZrLWogLNEc_Nv2th5lz1HJ9Cm9o0MPZBnRx4lQ==&ind=I7498_6,I7498_7,I7498_8,I7498_9,I7498_10,I7498_11,I7498_12,I7498_13,I7498_14,I7498_15,I7498_16,I7498_17&dim=Country,Year,Quarter,Month,WeekCode,Week"
+    }
+    # 
 ]
-
 def clean_url(url):
     """Remove any `&pageno=X` from the URL string."""
     return re.sub(r"&pageno=\d+", "", url)
