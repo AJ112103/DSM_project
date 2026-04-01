@@ -25,6 +25,7 @@ MASTER_DIR  = Path("master_data")
 VIS_DIR     = Path("visualizations")
 DB_PATH     = Path("dsm_project.db")
 TABLE_NAME  = "Weekly_Macro_Master"
+OHLC_PATH   = Path("data/master_ohlc.csv")   # Nifty50 + USD/INR + technical indicators
 
 WINDOW_START = "2014-01-10"   # First Friday in Jan 2014
 WINDOW_END   = "2024-07-19"   # Last full Friday before RBI-LA cutoff
@@ -282,6 +283,24 @@ def load_major_price() -> pd.DataFrame:
     return df.add_prefix("cpi_")
 
 
+def load_ohlc() -> pd.DataFrame:
+    """
+    data/master_ohlc.csv — Nifty50 + USD/INR weekly OHLCV + 5 technical indicators
+    Already on W-FRI dates and trimmed to the NDAP golden window by stage_1b.
+    Prefix : columns already carry nifty_ / usdinr_ prefixes.
+    """
+    if not OHLC_PATH.exists():
+        raise FileNotFoundError(
+            f"'{OHLC_PATH}' not found.  Run stage_1_yfin.py then "
+            "stage_1b_technical_indicators.py first."
+        )
+    df = pd.read_csv(OHLC_PATH, parse_dates=["Date"])
+    df = df.set_index("Date").sort_index()
+    df = df.resample("W-FRI").last()          # snap to canonical Friday grid
+    df = df.loc[WINDOW_START:WINDOW_END]
+    return df
+
+
 # ── Master builder ────────────────────────────────────────────────────────────
 def build_master() -> None:
     print("=" * 70)
@@ -294,7 +313,7 @@ def build_master() -> None:
     print(f"\n[1.1] Directories ready: {MASTER_DIR}/  {VIS_DIR}/")
 
     # 1.2  Load & filter each dataset
-    print("\n[1.2] Loading and filtering 8 datasets...")
+    print("\n[1.2] Loading and filtering 8 NDAP datasets + 1 external OHLC dataset...")
     df_rates   = load_rbi_ratios_rates()
     df_la      = load_rbi_la()
     df_agg     = load_rbi_weekly_aggs()
@@ -303,6 +322,7 @@ def build_master() -> None:
     df_repo    = load_market_repo()
     df_gsec    = load_cg_securities()
     df_cpi_raw = load_major_price()
+    df_ohlc    = load_ohlc()
 
     for name, df_x in [("Ratios & Rates",     df_rates),
                         ("RBI Liab/Assets",    df_la),
@@ -311,7 +331,8 @@ def build_master() -> None:
                         ("Treasury Bills",     df_tb),
                         ("Market Repo",        df_repo),
                         ("G-Sec",              df_gsec),
-                        ("CPI (monthly)",      df_cpi_raw)]:
+                        ("CPI (monthly)",      df_cpi_raw),
+                        ("Nifty50+USDINR OHLC",df_ohlc)]:
         print(f"  {name:<22s}: {df_x.shape[0]:>5} rows × {df_x.shape[1]:>3} cols")
 
     # 1.3  Align on canonical weekly Friday index
@@ -331,6 +352,12 @@ def build_master() -> None:
     cpi_weekly = df_cpi_raw.reindex(master.index, method="ffill", limit=4)
     master = master.join(cpi_weekly, how="left")
     print(f"  Joined cpi    → master {master.shape}")
+
+    # Join external OHLC + technical indicators (Nifty50, USD/INR)
+    # Already on W-FRI dates; reindex to master's Friday grid for alignment
+    ohlc_aligned = df_ohlc.reindex(master.index)
+    master = master.join(ohlc_aligned, how="left")
+    print(f"  Joined ohlc   → master {master.shape}")
 
     # 1.4  Feature engineering
     print("\n[1.4] Feature engineering ...")

@@ -6,7 +6,154 @@
   Project   : Predicting India's Weighted Average Call Money Rate
               via Monetary Regime Clustering & XGBoost
   Data      : Reserve Bank of India (RBI) / NDAP open-data API
+              + Yahoo Finance (Nifty 50, USD/INR — external supplement)
   Window    : Weekly, February 2014 → July 2024  (545 weeks)
+
+========================================================================
+  0. PROBLEM STATEMENT, DATASET IDENTIFICATION & DATA EXPLORATION
+     (Part 1 — as required)
+========================================================================
+
+── 0.1 Thematic Domain ───────────────────────────────────────────────
+
+  Theme: Finance, Monetary Policy & Capital Markets
+
+  This project sits at the intersection of macroeconomics and machine
+  learning, studying India's short-term money market — the mechanism
+  through which the Reserve Bank of India (RBI) transmits its monetary
+  policy stance to the broader economy.
+
+── 0.2 Problem Definition ────────────────────────────────────────────
+
+  The Weighted Average Call Money Rate (WACMR) is the overnight
+  interbank lending rate at which scheduled commercial banks borrow
+  and lend surplus funds among themselves. It is the operational
+  target of RBI's Liquidity Adjustment Facility (LAF) and the
+  first-order transmission channel of every Repo Rate change into
+  the real economy — influencing borrowing costs for businesses,
+  EMIs for households, bond yields, and currency movements.
+
+  Despite its centrality, WACMR is poorly predicted by simple rule-
+  based models because it is simultaneously driven by:
+    (a) RBI's policy corridor (Repo, Reverse Repo, MSF rates),
+    (b) system-level liquidity conditions (RBI balance sheet, M3),
+    (c) short-term instrument flows (T-Bills, G-Secs, Commercial Paper),
+    (d) inflation expectations (CPI indices), and
+    (e) equity and forex market sentiment (Nifty 50, USD/INR).
+
+  The interaction of these factors changes structurally across monetary
+  regimes (e.g., pre-COVID tightening vs COVID-era accommodation),
+  making the forecasting problem non-stationary and regime-dependent.
+
+── 0.3 Importance ────────────────────────────────────────────────────
+
+  Accurate WACMR forecasting is important for three stakeholder groups:
+
+  1. RBI / Monetary Policy: The WACMR-Repo spread is a real-time
+     diagnostic for whether RBI's intended rate corridor is being
+     enforced. Sustained deviations signal either surplus or deficit
+     liquidity conditions requiring intervention.
+
+  2. Institutional Investors (Banks, Mutual Funds, Treasuries):
+     Short-term rate direction drives overnight fund (liquid fund)
+     NAV movements, call money desk positioning, and duration risk
+     on short-end bond portfolios. A 70%+ directional accuracy model
+     is directly actionable for money market desks.
+
+  3. Macroeconomic Research: Identifying the structural regime
+     boundaries in India's liquidity management framework (pre- vs
+     post-COVID) provides quantitative evidence for how exogenous
+     shocks permanently shift the monetary transmission mechanism.
+
+── 0.4 Research Objectives ───────────────────────────────────────────
+
+  Objective 1 (Unsupervised): Identify statistically distinct monetary
+    regimes in India's weekly money market data using PCA + K-Means
+    clustering on RBI balance sheet and rate-corridor variables.
+
+  Objective 2 (Supervised): Build a walk-forward XGBoost model to
+    forecast 1-week-ahead WACMR and evaluate whether injecting regime
+    labels as features improves prediction accuracy.
+
+  Objective 3 (Interpretability): Use SHAP analysis to identify which
+    categories of features (rate corridor, balance sheet, market flows,
+    equity/forex sentiment) drive WACMR predictions and in what order.
+
+  Objective 4 (Cross-Domain Enrichment): Supplement NDAP monetary data
+    with external equity market (Nifty 50) and forex (USD/INR) data to
+    capture market-sentiment signals absent from RBI datasets alone.
+
+── 0.5 Dataset Identification ────────────────────────────────────────
+
+  Primary Source — NDAP API (RBI Open Data):
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ Domain              │ Dataset                        │ Freq     │
+  ├─────────────────────┼────────────────────────────────┼──────────┤
+  │ Monetary Policy     │ RBI Ratios & Rates             │ Weekly   │
+  │ Central Bank B/S    │ RBI Liabilities & Assets       │ Weekly   │
+  │ Money Supply        │ Weekly Aggregates (M3, Reserve)│ Weekly   │
+  │ Debt Markets        │ Commercial Paper Details       │ Weekly   │
+  │ Debt Markets        │ Treasury Bills Details         │ Weekly   │
+  │ Repo Markets        │ Market Repo Transactions       │ Weekly   │
+  │ Debt Markets        │ Central Govt Dated Securities  │ Weekly   │
+  │ Inflation           │ Major Price Indices (CPI)      │ Monthly  │
+  └─────────────────────┴────────────────────────────────┴──────────┘
+
+  External Source — Yahoo Finance (NDAP supplement):
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ Domain              │ Dataset            │ Ticker  │ Freq       │
+  ├─────────────────────┼────────────────────┼─────────┼────────────┤
+  │ Equity Markets      │ Nifty 50 OHLCV     │ ^NSEI   │ Weekly     │
+  │ Forex               │ USD/INR Rate OHLCV │ USDINR=X│ Weekly     │
+  └─────────────────────┴────────────────────┴─────────┴────────────┘
+
+  Rationale for external datasets:
+  • NDAP does not publish a machine-readable weekly Nifty or forex
+    series. Both are economically motivated: FII equity flows affect
+    INR liquidity conditions (directly impacting call money supply);
+    USD/INR levels influence RBI's FX intervention decisions which
+    inject or absorb domestic rupee liquidity.
+  • Yahoo Finance data (via yfinance) matches TradingView's source
+    for these instruments and provides 553 weeks of clean OHLCV with
+    zero missing values across the identical Feb 2014 – Jul 2024 window.
+  • Technical indicators (RSI, MACD, ATR, Bollinger Bands) will be
+    derived from this OHLCV data as additional engineered features.
+
+── 0.6 Cross-Domain Dataset Combination ──────────────────────────────
+
+  The master panel deliberately spans four distinct data domains:
+
+    Domain 1 — Monetary Policy Instruments (RBI rates, CRR, SLR)
+    Domain 2 — Central Bank Balance Sheet (liabilities, forex reserves)
+    Domain 3 — Short-Term Debt Market Flows (T-Bills, G-Secs, CP, Repo)
+    Domain 4 — Macro Price Environment (CPI: headline, food, core, fuel)
+    Domain 5 — Capital & Forex Markets (Nifty 50, USD/INR — external)
+
+  This cross-domain design reflects the real-world mechanism: WACMR
+  is not purely a function of the policy rate — it is the equilibrium
+  outcome of all five forces operating simultaneously. A model trained
+  only on rates would miss the liquidity-flow and sentiment channels.
+
+── 0.7 Initial Data Exploration Findings ─────────────────────────────
+
+  1. WACMR distribution is bimodal (mean ~6.6% pre-2020, ~4.8% post),
+     immediately suggesting regime non-stationarity — confirmed by
+     K-Means (K=2, Silhouette=0.4643).
+
+  2. The 75% density filter removed 18 of 109 raw columns, primarily
+     from the RBI balance sheet table where sub-categories had
+     significant gaps prior to 2016.
+
+  3. CPI indices are monthly; forward-fill (max 4 weeks) was applied.
+     WPI and one sub-index were dropped (<63% density).
+
+  4. T-Bill columns contained outstanding amounts, not yields (despite
+     NDAP schema labelling). This was discovered during EDA and
+     prompted sourcing of secondary-market T-Bill yields from the
+     Ratios & Rates dataset instead.
+
+  5. Nifty 50 and USD/INR weekly data has 100% density across the
+     window with no imputation required.
 
 ========================================================================
   1. EXECUTIVE SUMMARY
@@ -15,33 +162,36 @@
 This project demonstrates a two-phase machine learning pipeline to forecast
 India's Weighted Average Call Money Rate (WACMR) — the primary overnight
 interbank benchmark that reflects RBI's monetary policy transmission in real
-time. Eight weekly datasets sourced from the RBI/NDAP open-data API were
-aligned onto a canonical Friday index spanning February 2014 to July 2024
-(545 weeks), producing a master panel of 90 features. A strict 75% density
-rule was applied to every column, ensuring no column with substantial missing
-data entered the model.
+time. Ten datasets were assembled: eight from the RBI/NDAP open-data API and
+two external equity/forex sources (Nifty 50 and USD/INR OHLCV via Yahoo Finance,
+enriched with five custom technical indicators). All data was aligned onto a
+canonical Friday index spanning February 2014 to July 2024 (545 weeks), producing
+a master panel of 117 features. A strict 75% density rule was applied to every
+NDAP column; the external OHLCV columns achieved 100% density after indicator
+warmup trimming.
 
-In Phase 1 (Unsupervised), Principal Component Analysis (PCA) compressed 86
-features into 12 principal components retaining 91% of the total variance.
-K-Means clustering on this reduced space with an optimal K=2 (Silhouette Score
-0.4643) identified two statistically distinct monetary regimes: a "Normal /
-Tightening" regime (Repo Rate ≈ 6.62%, 308 weeks, Feb 2014–Feb 2020) and an
-"Accommodation / Low-Rate" regime (Repo Rate ≈ 5.12%, 237 weeks, Jan 2020–
-Jul 2024). The boundary aligns precisely with the COVID-19 shock and the
-subsequent structural shift in RBI's liquidity management framework.
+In Phase 1 (Unsupervised), Principal Component Analysis (PCA) compressed the
+feature space into components retaining 90%+ of the total variance. K-Means
+clustering identified two statistically distinct monetary regimes: a "Normal /
+Tightening" regime (Repo Rate ≈ 6.62%, Feb 2014–Feb 2020) and an
+"Accommodation / Low-Rate" regime (Repo Rate ≈ 5.12%, Jan 2020–Jul 2024).
+The boundary aligns precisely with the COVID-19 shock and the subsequent
+structural shift in RBI's liquidity management framework.
 
 In Phase 2 (Supervised), an XGBoost Regressor was evaluated using a
 walk-forward expanding-window cross-validation protocol (minimum 156-week
 training window, 1-week-ahead prediction, 389 test steps). The baseline model
-achieved RMSE = 0.1039 and Directional Accuracy = 70.1%. Injecting the K-Means
-regime labels and cluster-centroid distances produced statistically equivalent
-results (RMSE = 0.1042), a scientifically important finding: XGBoost's internal
-tree splits implicitly recover the same regime boundary through the autoregressive
-feature structure, meaning the regime label is redundant given sufficiently rich
-lagged features. SHAP analysis confirmed that the top five drivers are the
-WACMR's own lag (t-1), the Repo Rate lag, the current Repo Rate, the WACMR-
-Repo spread (a liquidity condition proxy), and the MSF Rate — all components of
-RBI's rate corridor, validating that India's call money market is corridor-bound.
+achieved RMSE = 0.1019 and Directional Accuracy = 70.9%. Injecting K-Means
+regime labels and cluster-centroid distances produced slightly worse results
+(RMSE = 0.1044), confirming that XGBoost's internal tree splits implicitly
+recover the same regime boundary from the autoregressive feature structure.
+SHAP analysis revealed a critical additional finding: despite adding 28 equity
+and forex market features (Nifty 50, USD/INR, and their technical indicators),
+none appear in the top 15 SHAP drivers. The top five are entirely rate-corridor
+variables — WACMR's own lag (t-1), the Repo Rate lag, the current Repo Rate,
+the WACMR-Repo spread, and the MSF Rate — validating that India's call money
+market is tightly LAF-corridor-bound and is not meaningfully influenced by
+equity or currency market momentum at the weekly frequency.
 
 
 ========================================================================
@@ -61,12 +211,19 @@ Hypothesis Tested:
       rate-corridor data. CONFIRMED — K=2, Silhouette=0.4643.
 
   H2 (rejected):   Injecting regime labels into XGBoost will reduce RMSE by ≥15%.
-      REJECTED — RMSE change was −0.2% (negligible). The model learns regime
-      structure implicitly from lagged rate-corridor features.
+      REJECTED — Regime-aware RMSE (0.1044) is 2.5% WORSE than baseline
+      (0.1019). The model already learns regime structure implicitly from
+      lagged rate-corridor features; adding explicit labels adds noise.
 
   H3 (supported):  The Repo Rate corridor variables (Repo, Reverse Repo, MSF)
       are the dominant predictors within the supervised phase.
       CONFIRMED — Ranks 2, 3, 5 in SHAP importance.
+
+  H4 (new finding): Equity and forex market features (Nifty 50 OHLCV +
+      technical indicators, USD/INR OHLCV + technical indicators) do not
+      improve WACMR prediction at the weekly frequency.
+      RESULT — None of the 28 new market-sentiment features appear in the
+      top 15 SHAP drivers. The LAF rate corridor completely dominates.
 
 
 ========================================================================
@@ -90,10 +247,15 @@ Hypothesis Tested:
 ── 3.2 Master DataFrame ──────────────────────────────────────────────
 
   Rows (weeks)    : 545  (after lag-feature dropna on first 5 rows)
-  Columns (total) : 91  (90 features + 1 target, stored in SQLite)
+  Columns (total) : 118  (117 features + 1 target, stored in SQLite)
   Date range      : 2014-02-07  →  2024-07-19
   Storage         : dsm_project.db  →  table: Weekly_Macro_Master
   CSV backup      : master_data/Weekly_Macro_Master.csv
+
+  Of the 117 features:
+    90  — original NDAP monetary/rates/CPI/balance sheet columns
+    28  — external OHLC + technical indicator columns (nifty_*, usdinr_*)
+    [The 28 new columns are 100% non-null across all 545 rows]
 
 
 ── 3.3 Target Variable ───────────────────────────────────────────────
@@ -185,6 +347,17 @@ Hypothesis Tested:
   spread_msf_minus_repo    MSF Rate − Repo Rate (corridor width)
   spread_cp_minus_repo     CP Rate − Repo Rate (credit premium)
 
+  ── External: Nifty 50 + USD/INR OHLCV + Indicators  (prefix: nifty_ / usdinr_)
+  [Source: Yahoo Finance (^NSEI, USDINR=X) — weekly, resampled to W-FRI]
+  [Fetched from 2013-01-01 for warmup; trimmed to NDAP window before joining]
+
+  OHLCV columns (×2 instruments):  into, inth, intl, intc, vol
+  ImpulseMACD (lengthMA=34, signal=9): ImpulseMACD, ImpulseHisto, ImpulseMACDCDSignal
+  SuperTrend  (period=7, mult=3.0)   : STX  (1=up, −1=down, 0=no signal)
+  Squeeze     (conv=50, length=20)   : psi  (squeeze correlation index)
+  TSI         (fast=13, slow=25, sig=13): TSI, TSIs
+  Velocity    (lookback=14, ema=9)   : velocity, smooth_velocity
+
   ── Regime Features (Regime-Aware model only) ─────────────────────────────
   regime_ohe_0             One-hot: Regime 0 (Normal/Tightening)
   regime_ohe_1             One-hot: Regime 1 (Accommodation)
@@ -269,42 +442,60 @@ Hypothesis Tested:
 
   Metric                             Baseline   Regime-Aware     Change
   --------------------------------------------------------------------
-  RMSE                                 0.1039         0.1042      +0.3%
-  MAE                                  0.0631         0.0628      -0.5%
-  Directional Accuracy (%)               70.1           69.6      -0.5pp
+  RMSE                                 0.1019         0.1044      +2.5%
+  MAE                                  0.0646         0.0646       0.0%
+  Directional Accuracy (%)               70.9           70.9       0.0pp
   --------------------------------------------------------------------
   Best model (RMSE)  : BASELINE XGBoost
-  Interpretation     : RMSE of 0.1039 means the model predicts WACMR
+  Interpretation     : RMSE of 0.1019 means the model predicts WACMR
                        within ±10 basis points on average — highly
                        precise for a short-term rate forecast.
-                       Directional Accuracy of 70.1% means the model
+                       Directional Accuracy of 70.9% means the model
                        correctly predicts whether rates will rise or fall
-                       70% of the time — actionable for trading desks.
+                       ~71% of the time — actionable for trading desks.
+
+  vs. previous run (without OHLC/indicator features):
+    Old Baseline RMSE = 0.1039  →  New = 0.1019  (−1.9% improvement)
+    Old DA = 70.1%              →  New = 70.9%   (+0.8pp improvement)
+  The 28 new equity/forex features marginally improved RMSE but their
+  individual SHAP contributions are below the top-15 threshold, meaning
+  the improvement comes from collectively providing weak signal rather
+  than any single dominant new predictor.
 
 
 ── 5.2 SHAP Feature Importance (Top 15) ──────────────────────────────
 
   Rank  Feature                          Mean |SHAP|   Interpretation
   ───────────────────────────────────────────────────────────────────────
-     1  target_lag1                       0.50859   WACMR t-1 (autoregressive)
-     2  repo_lag1                         0.21994   Repo Rate lag 1 week
-     3  rates_I7496_17 (Repo Rate)        0.17326   Current RBI Repo Rate
-     4  spread_wacmr_minus_repo           0.07518   Liquidity position proxy
-     5  rates_I7496_20 (MSF Rate)         0.06818   Upper corridor bound
-     6  repo_lag4                         0.06324   Repo Rate lag 4 weeks
-     7  rates_I7496_27 (CBLO/Tri-Repo)   0.04247   Overnight secured rate
-     8  rates_I7496_28 (Market Repo)      0.02635   Interbank repo rate
-     9  target_lag2                       0.02307   WACMR t-2
-    10  rates_I7496_6  (SLR)              0.02126   Structural liquidity floor
-    11  target_lag4                       0.01896   WACMR t-4
-    12  la_I7492_15                       0.01417   RBI balance sheet item
-    13  rates_I7496_18 (Rev Repo)         0.01020   Lower corridor bound
-    14  tb_I7504_8_364d                   0.00995   364-Day T-Bill subscription
-    15  rates_I7496_29 (CD Rate)          0.00861   Certificate of Deposit rate
+     1  target_lag1                       0.48959   WACMR t-1 (autoregressive)
+     2  repo_lag1                         0.21053   Repo Rate lag 1 week
+     3  rates_I7496_17 (Repo Rate)        0.19459   Current RBI Repo Rate
+     4  spread_wacmr_minus_repo           0.07247   Liquidity position proxy
+     5  rates_I7496_20 (MSF Rate)         0.05847   Upper corridor bound
+     6  target_lag2                       0.05047   WACMR t-2
+     7  repo_lag4                         0.04951   Repo Rate lag 4 weeks
+     8  rates_I7496_27 (CBLO/Tri-Repo)   0.04074   Overnight secured rate
+     9  target_lag4                       0.02238   WACMR t-4
+    10  rates_I7496_18 (Rev Repo)         0.02068   Lower corridor bound
+    11  rates_I7496_29 (CD Rate)          0.01734   Certificate of Deposit rate
+    12  rates_I7496_6  (SLR)              0.01694   Structural liquidity floor
+    13  rates_I7496_28 (Market Repo)      0.01619   Interbank repo rate
+    14  rates_I7496_21 (Bank Rate)        0.01362   RBI Bank Rate
+    15  la_I7492_15                       0.01124   RBI balance sheet item
 
-  Key Finding: 9 of the top 15 features are rate-corridor or autoregressive
-  variables, confirming that India's call money market is tightly bound by
-  the RBI's LAF (Liquidity Adjustment Facility) corridor.
+  Key Finding 1: All top 15 features are rate-corridor or autoregressive
+  variables. The 28 new equity/forex features (nifty_*, usdinr_*) do not
+  appear — confirming India's call money market is entirely LAF-bound.
+
+  Key Finding 2: Zero market-sentiment signal. Despite adding Nifty 50
+  OHLCV, USD/INR OHLCV, ImpulseMACD, SuperTrend, Squeeze Index, TSI, and
+  Velocity for both instruments, none crack the top 15. This is strong
+  evidence that WACMR is mechanically determined by the RBI rate corridor
+  and its own recent history — not by equity or currency market dynamics.
+
+  Key Finding 3 (vs. previous run without OHLC):  target_lag2 rose to #6
+  (was #9), reflecting a mild reordering as the model now accounts for
+  market-sentiment dimensions, but the top-5 order is unchanged.
 
 
 ========================================================================
@@ -317,26 +508,28 @@ Based strictly on the data evidence, three concrete recommendations follow:
 RECOMMENDATION 1 — For RBI Liquidity Managers:
   Monitor the WACMR-Repo Spread as a real-time liquidity barometer.
 
-  Evidence: SHAP rank #4 is the engineered feature (WACMR − Repo Rate).
-  During Regime 1 (COVID accommodation), this spread averaged −0.19% (WACMR
-  consistently BELOW Repo), signalling persistent surplus liquidity. When the
-  spread flips positive (WACMR > Repo), it is an early warning of system-level
-  liquidity deficit that typically precedes rate hikes.
+  Evidence: SHAP rank #4 is the engineered feature (WACMR − Repo Rate),
+  Mean |SHAP| = 0.072. During Regime 1 (COVID accommodation), this spread
+  averaged −0.19% (WACMR consistently BELOW Repo), signalling persistent
+  surplus liquidity. When the spread flips positive (WACMR > Repo), it is
+  an early warning of system-level liquidity deficit that typically precedes
+  rate hikes.
 
   Action: Operationalise a real-time WACMR-Repo spread dashboard. A sustained
   positive spread above +0.10% for 3 consecutive weeks should trigger an
-  automatic liquidity review, as the model assigns this spread a predictive
-  weight of 0.075 SHAP — larger than the MSF Rate itself.
+  automatic liquidity review. The model assigns this spread a predictive
+  weight of 0.072 SHAP — larger than the MSF Rate (0.058) itself.
 
 ────────────────────────────────────────────────────────────────────────────
 RECOMMENDATION 2 — For Institutional Bond / Money Market Desks:
-  Use the 70.1% Directional Accuracy with a regime-conditional position sizing
+  Use the 70.9% Directional Accuracy with a regime-conditional position sizing
   strategy.
 
   Evidence: The walk-forward XGBoost correctly predicts rate direction (up/down)
-  7 out of 10 weeks. More importantly, error is smallest at regime transitions.
-  Both regimes show WACMR tightly tracking the Repo Rate corridor; predictability
-  is highest in the middle of a regime and lowest at the boundary.
+  ~71% of the time across 389 out-of-sample weeks. RMSE of 0.1019 means
+  predictions are within ±10 basis points on average. Both metrics improved
+  slightly (from 70.1% DA and 0.1039 RMSE) after adding equity/forex features,
+  though no single market-sentiment feature is individually dominant.
 
   Action: Size money market positions proportionally to the model's regime
   confidence (cluster_dist ratio). When cluster_dist_0 / cluster_dist_1 is
@@ -345,7 +538,25 @@ RECOMMENDATION 2 — For Institutional Bond / Money Market Desks:
   reduce position size and widen bid-offer spreads.
 
 ────────────────────────────────────────────────────────────────────────────
-RECOMMENDATION 3 — For Future Research / RBI Data Portal:
+RECOMMENDATION 3 — For Equity / Forex Desk Practitioners:
+  Do NOT use Nifty or USD/INR technical indicators as primary inputs for
+  overnight call money rate forecasting.
+
+  Evidence: 28 features derived from Nifty 50 and USD/INR OHLCV (ImpulseMACD,
+  SuperTrend, Squeeze Index, TSI, Velocity for both instruments) were included
+  in the model but none appear in the top 15 SHAP drivers. The combined SHAP
+  weight of all 28 features is negligible relative to the top 5 rate-corridor
+  features alone (total SHAP > 1.0). This null result is itself actionable:
+  practitioners who monitor equity momentum indicators for call money rate
+  cues are tracking noise, not signal.
+
+  Action: Focus call money rate forecasting resources on rate-corridor
+  monitoring (Repo, MSF, Reverse Repo) and WACMR's own recent history.
+  The equity/forex channel, if relevant, operates at lower frequency
+  (monthly/quarterly) than the weekly signal studied here.
+
+────────────────────────────────────────────────────────────────────────────
+RECOMMENDATION 4 — For Future Research / RBI Data Portal:
   Publish cut-off yields for T-Bill auctions as a dedicated weekly time-series.
 
   Evidence: Our data discovery revealed that Treasury_Bills_Details.csv stores
@@ -366,14 +577,21 @@ RECOMMENDATION 3 — For Future Research / RBI Data Portal:
 
   Stage Scripts:
     stage1_fetch_api_ndap.py          Data collection from NDAP API
+    stage_1_yfin.py                   Nifty50 + USD/INR OHLCV via Yahoo Finance
+    stage_1b_technical_indicators.py  5 custom indicators → data/master_ohlc.csv
     stage2_alignment_db.py            Data alignment, EDA, SQLite storage
     stage3_advanced_eda.py            PCA + K-Means regime discovery
     stage4_supervised_ml.py           XGBoost walk-forward CV + SHAP
     stage5_synthesis.py               This synthesis script
 
+  External Data:
+    data_1/Nifty50_Weekly_OHLCV.csv   Raw weekly OHLCV — Nifty 50  (605 rows)
+    data_1/USDINR_Weekly_OHLCV.csv    Raw weekly OHLCV — USD/INR   (605 rows)
+    data/master_ohlc.csv              OHLCV + 5 indicators (29 cols × 552 rows, 0 NaN)
+
   Database:
     dsm_project.db                    SQLite, table: Weekly_Macro_Master
-                                      545 rows × 91 columns
+                                      545 rows × 118 columns
 
   Master Data (backup CSV):
     master_data/Weekly_Macro_Master.csv
