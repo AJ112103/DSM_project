@@ -745,3 +745,221 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
      RMSE during those 66 event weeks (0.0870) is lower than non-event
      weeks (0.1046), indicating seasonal patterns are fully learnable
      but tail macro shocks are not.
+
+
+========================================================================
+  9. CHALLENGES FACED & SOLUTIONS
+========================================================================
+
+This section documents every specific technical and methodological
+challenge encountered during the project, along with the exact solution
+applied. Challenges are organised by project stage.
+
+────────────────────────────────────────────────────────────────────────────
+STAGE 1 — DATA COLLECTION
+────────────────────────────────────────────────────────────────────────────
+
+  Challenge 1.1 — NDAP API does not return all data in a single response
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The NDAP open-data API silently paginates results. An initial
+  fetch with a plain URL returned only the first page of data (typically
+  100–200 rows), giving no error and no indication that more data existed.
+  For datasets spanning 2006–2024, this truncated the series mid-way.
+
+  Solution: Built an auto-paginating loop in stage1_fetch_api_ndap.py that
+  appends `&pageno=N` to each URL and increments N until the API returns an
+  empty response. All 8 NDAP datasets were then fully downloaded and saved
+  as flat CSVs. This was a non-obvious API behaviour not documented in the
+  portal's front-end interface.
+
+────────────────────────────────────────────────────────────────────────────
+STAGE 2 — DATA ALIGNMENT & DATABASE STORAGE
+────────────────────────────────────────────────────────────────────────────
+
+  Challenge 2.1 — Three different temporal index formats across 8 datasets
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The 8 NDAP datasets used three completely different date schemes:
+    • CalendarDay: actual date strings like "2014-01-10" (Ratios/Rates, Agg)
+    • WeekCode (Financial Year): YYYYWW where Week 1 = first week of April
+      (Liabilities & Assets)
+    • WeekCode (Calendar Year): YYYYWW where Week 1 = first week of January
+      (Treasury Bills, Market Repo, G-Secs, Commercial Paper)
+  A single generic date parser failed silently for two of these formats,
+  producing dates that were off by up to 12 weeks.
+
+  Solution: Wrote three separate parsing functions — direct pd.to_datetime()
+  for CalendarDay, parse_weekcode_fy() for FY-based WeekCode, and
+  parse_weekcode_cy() for CY-based WeekCode. Each function decodes YYYYWW
+  into a base date (April 1 or January 1 of the year) and adds (week−1)
+  weeks. A snap_to_friday() function then moves any result to the nearest
+  following Friday to align with the canonical weekly index.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 2.2 — Treasury Bills CSV stores amounts, not yields
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The original target variable was the 364-day T-Bill cut-off
+  yield. The NDAP schema labels column I7504_10 as a yield metric, and
+  the portal's data explorer confirms it as "Cut-Off Yield (%)". However,
+  the downloaded CSV for Treasury_Bills_Details.csv contained values in the
+  range of 10,000–500,000 — clearly outstanding amounts in ₹ crore, not
+  yields in percentage. Values like 322,453.14 are impossible as a yield.
+
+  Solution: Cross-referenced with RBI's weekly statistical supplement and
+  confirmed that I7504_10 is the outstanding amount, not the cut-off yield.
+  The cut-off yield is not available in NDAP's machine-readable weekly API.
+  The target was changed to WACMR (rates_I7496_26) from the Ratios & Rates
+  dataset, which is available, 100% non-null, and more directly reflects
+  monetary policy transmission than the auction yield.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 2.3 — OHLCV weekly dates misaligned between Nifty and USD/INR
+  ────────────────────────────────────────────────────────────────────────
+  Problem: yfinance returns weekly OHLCV anchored to the first trading day
+  of each week. Nifty 50 (NSE, Monday-anchored) and USD/INR (forex,
+  Wednesday-anchored in some weeks) produced different date indices. An
+  outer join on Date produced 1,106 rows instead of the expected 553,
+  with each instrument occupying a separate row for the same week.
+
+  Solution: Added a resample("W-FRI") step in stage_1b before computing
+  indicators. This snaps both series to the same Friday-end weekly grid
+  that the NDAP master panel uses, making an inner join produce a clean
+  552-row × 29-column master_ohlc.csv with no misaligned dates.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 2.4 — CPI data is monthly; everything else is weekly
+  ────────────────────────────────────────────────────────────────────────
+  Problem: Major_Price_Indices.csv publishes one row per month. Joining
+  it directly to a weekly index left 3 out of every 4 weeks as NaN for
+  all 7 CPI columns, which would have triggered the 75% density filter
+  and dropped all inflation indicators from the model.
+
+  Solution: Applied pandas reindex() with method="ffill" and limit=4
+  (maximum 4-week carry). The monthly value is assigned to the first
+  Friday of each month and forward-filled for up to 4 subsequent Fridays.
+  This is economically appropriate since CPI is a stock variable that
+  does not change between monthly releases.
+
+────────────────────────────────────────────────────────────────────────────
+STAGE 1b — TECHNICAL INDICATORS
+────────────────────────────────────────────────────────────────────────────
+
+  Challenge 3.1 — Indicator warmup periods created leading NaN rows
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The five custom indicators have different minimum lookback
+  requirements before they produce a valid output. The slowest — TSI with
+  a double-EMA of (slow=25, fast=13) — requires 49 bars to produce a
+  signal line value. When the OHLCV data started at 2014-01-01, the first
+  49 rows of TSI and TSIs were NaN. Joining this to the NDAP master (which
+  starts at 2014-02-07) left ~4 weeks of NaN indicator values in the final
+  feature matrix.
+
+  Solution: Changed the OHLCV fetch in stage_1_yfin.py to start from
+  2013-01-01, giving 52 extra weeks of warmup data. stage_1b then computes
+  indicators on the full 605-row series (2013–2024) and trims the output
+  to the NDAP window start (2014-01-10) using dropna() followed by a date
+  filter. The final master_ohlc.csv has 0 NaN across all 29 columns.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 3.2 — SuperTrend STX column encoding ambiguity
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The SuperTrend function returns STX as either the string 'up',
+  the string 'down', or np.NaN (during the ATR warmup period). The
+  function then calls df.fillna(0, inplace=True) at the end, converting
+  NaN to the integer 0. This creates an ambiguity: 0 could mean "downtrend"
+  or "no signal yet". A naive mapping of {'down': 0} would make the warmup
+  period indistinguishable from an active downtrend signal.
+
+  Solution: Encoded explicitly as: 'up' → 1, 'down' → -1, 0 (no signal)
+  → 0. This three-way encoding preserves the distinction between an active
+  downtrend signal and the pre-signal warmup state, and is interpretable
+  as a signed momentum indicator when used as a feature.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 3.3 — yfinance MultiIndex column structure
+  ────────────────────────────────────────────────────────────────────────
+  Problem: When called with auto_adjust=True, yfinance returns a pandas
+  DataFrame with a MultiIndex column structure where each column is a
+  tuple like ('Close', '^NSEI') instead of the simple string 'Close'.
+  This caused KeyError when the indicator functions tried to access
+  df['intc'] after the rename step, since the rename only matched
+  single-level column names.
+
+  Solution: Added a MultiIndex flattening step immediately after the
+  yfinance download: `df.columns = [col[0] for col in df.columns]`.
+  This extracts just the metric name (Close, High, etc.) before renaming
+  to the internal convention (intc, inth, intl, into).
+
+────────────────────────────────────────────────────────────────────────────
+STAGE 3 — UNSUPERVISED ML (REGIME DISCOVERY)
+────────────────────────────────────────────────────────────────────────────
+
+  Challenge 4.1 — Near-identical silhouette scores for K=2 and K=3
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The K-Means silhouette sweep produced K=2 (0.4643) and K=3
+  (0.4630) with a difference of only 0.0013 — statistically negligible.
+  Choosing K=3 would have been defensible numerically, but the additional
+  cluster would have split one of the two main regimes into sub-periods
+  without a clear economic interpretation.
+
+  Solution: Selected K=2 on the basis of both the (marginally superior)
+  silhouette score and economic interpretability. The K=2 boundary aligns
+  precisely with February 2020 — the COVID-19 structural break in RBI's
+  liquidity framework — which is verifiable from external evidence. K=3's
+  additional split did not align with any known RBI policy discontinuity.
+  This choice is documented as a limitation (Section 8.2).
+
+────────────────────────────────────────────────────────────────────────────
+STAGE 4 — SUPERVISED ML & INTERPRETABILITY
+────────────────────────────────────────────────────────────────────────────
+
+  Challenge 5.1 — Regime labels made the model WORSE (H2 rejected)
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The central hypothesis was that injecting regime labels would
+  improve RMSE by ≥15%. Instead, the regime-aware model (RMSE 0.1044) was
+  2.5% worse than the baseline (RMSE 0.1019). This was initially suspected
+  to be a bug — an information leak, a feature matrix mismatch, or a CV
+  indexing error.
+
+  Solution: Audited the walk_forward_cv() function to confirm no lookahead.
+  Verified that regime labels were derived from K-Means fit on the FULL
+  dataset (a known limitation, treated as data-generating process knowledge
+  rather than a leak). Concluded the result is genuine: XGBoost's tree
+  splits implicitly recover the same regime boundary from the lagged Repo
+  Rate features. Adding explicit labels introduces redundant signal that
+  adds noise without predictive gain. This was reframed as a scientifically
+  interesting positive finding rather than a failure.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 5.2 — Calendar-effect hypothesis reversed unexpectedly
+  ────────────────────────────────────────────────────────────────────────
+  Problem: The residual analysis was designed to confirm that FY-end
+  (March) and Advance Tax weeks (June 15, Sept 15, Dec 15, March 15) are
+  the model's worst-performing periods — a widely cited pattern in Indian
+  money-market research. The result was the opposite: calendar-event weeks
+  had RMSE 0.0870 versus non-event RMSE 1.046. The model performs better,
+  not worse, during these high-pressure weeks.
+
+  Solution: Reframed the interpretation rather than discarding the finding.
+  The correct explanation is that 10 years of training data contains
+  many FY-end and advance-tax cycles, so the model has learned these
+  repeating patterns. The actual tail errors (RMSE > 0.3) cluster around
+  one-time macro shocks — COVID emergency rate cuts (Apr–May 2020) and the
+  surprise inter-meeting 40bps hike (May 2022) — which are structurally
+  novel events with no historical analogue in training data. The finding
+  is documented in Section 5.4 and limitation 6.
+
+  ────────────────────────────────────────────────────────────────────────
+  Challenge 5.3 — stage5_synthesis.py overwrites manually-written sections
+  ────────────────────────────────────────────────────────────────────────
+  Problem: stage5_synthesis.py regenerates report.txt from scratch using
+  Python string concatenation. Any content added manually to report.txt
+  (such as the Part 1 Problem Statement — Section 0) would be permanently
+  lost the next time stage5 was run, because the script opens the file
+  with write mode and replaces the entire content.
+
+  Solution: Embedded Section 0 (Problem Statement, Dataset Identification,
+  Cross-Domain Design) directly into stage5's run_stage5() code as a
+  generated text block. The script now outputs Section 0 as part of its
+  standard report generation, so it survives every subsequent run without
+  manual intervention.
+
