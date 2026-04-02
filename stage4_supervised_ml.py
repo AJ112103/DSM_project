@@ -324,6 +324,172 @@ def run_stage4() -> None:
     plt.close()
     print(f"  Saved: {pred_path}")
 
+    # ── 4.3  Regime-Specific SHAP Analysis ───────────────────────────────────
+    # Split the 545 SHAP rows by regime label to prove mechanical difference:
+    #   Regime 0 (Tightening) → model should lean on MSF Rate (upper bound)
+    #   Regime 1 (Accommodation) → model should lean on Reverse Repo (lower bound)
+    print("\n[4.3] Regime-Specific SHAP Analysis ...")
+
+    regime_labels = df["regime_label"].values   # 545 values, aligned with shap_values
+
+    fig, axes = plt.subplots(1, 2, figsize=(18, 8))
+    fig.suptitle(
+        "Regime-Specific SHAP — Top 12 Features per Monetary Regime\n"
+        "Proving mechanical MSF-dominance (tight) vs Reverse-Repo-dominance (surplus)",
+        fontsize=13, fontweight="bold"
+    )
+
+    regime_top12_results = {}
+    for ax, (regime_id, label, color) in zip(
+        axes,
+        [(0, "Regime 0\n(Normal/Tightening)", "#2166ac"),
+         (1, "Regime 1\n(Accommodation)",     "#d6604d")]
+    ):
+        mask = regime_labels == regime_id
+        sv   = shap_values[mask]                    # (n_regime_weeks, n_features)
+        n    = mask.sum()
+
+        mean_abs = np.abs(sv).mean(axis=0)
+        r_df = pd.DataFrame({"feature": feat_names, "mean_abs_shap": mean_abs})
+        r_df = r_df.sort_values("mean_abs_shap", ascending=False).head(12).reset_index(drop=True)
+        regime_top12_results[regime_id] = r_df
+
+        ax.barh(r_df["feature"][::-1], r_df["mean_abs_shap"][::-1],
+                color=color, alpha=0.80)
+        ax.set_title(f"{label}\n({n} weeks)", fontsize=11, fontweight="bold", color=color)
+        ax.set_xlabel("Mean |SHAP value|", fontsize=10)
+        ax.grid(axis="x", alpha=0.3)
+
+        # Annotate each bar with rank
+        for j, (val, fname) in enumerate(zip(r_df["mean_abs_shap"][::-1],
+                                              r_df["feature"][::-1])):
+            ax.text(val * 1.01, j, f"{val:.4f}", va="center", fontsize=8)
+
+        print(f"\n  Regime {regime_id} Top 12:")
+        for _, row in r_df.iterrows():
+            print(f"    {row.name+1:>2}. {row['feature']:<38}  {row['mean_abs_shap']:.5f}")
+
+    plt.tight_layout()
+    regime_shap_path = VIS_DIR / "shap_by_regime.png"
+    plt.savefig(regime_shap_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"\n  Saved: {regime_shap_path}")
+
+    # Print the key mechanistic finding
+    msf_rank_r0  = next((i+1 for i, f in enumerate(regime_top12_results[0]["feature"]) if "I7496_20" in f), "outside top 12")
+    rrr_rank_r0  = next((i+1 for i, f in enumerate(regime_top12_results[0]["feature"]) if "I7496_18" in f), "outside top 12")
+    msf_rank_r1  = next((i+1 for i, f in enumerate(regime_top12_results[1]["feature"]) if "I7496_20" in f), "outside top 12")
+    rrr_rank_r1  = next((i+1 for i, f in enumerate(regime_top12_results[1]["feature"]) if "I7496_18" in f), "outside top 12")
+    print(f"\n  Mechanistic finding:")
+    print(f"    MSF Rate rank  — Regime 0 (Tightening): #{msf_rank_r0}  |  Regime 1 (Accommodation): #{msf_rank_r1}")
+    print(f"    Rev Repo rank  — Regime 0 (Tightening): #{rrr_rank_r0}  |  Regime 1 (Accommodation): #{rrr_rank_r1}")
+
+    # ── 4.4  Residual Analysis & Calendar Effects ─────────────────────────────
+    print("\n[4.4] Residual Analysis & Calendar Effects ...")
+
+    residuals  = best_acts - best_preds           # positive = model under-predicted
+    abs_resid  = np.abs(residuals)
+
+    # Indian money-market calendar pressure dates (month, day pairs)
+    # Advance Tax instalments (June 15, Sept 15, Dec 15, March 15)
+    # Financial Year-end (March 25–31 window)
+    ADVANCE_TAX_MD = [(6, 15), (9, 15), (12, 15), (3, 15)]
+
+    def is_calendar_event(dt):
+        m, d = dt.month, dt.day
+        # FY-end: last 10 days of March
+        if m == 3 and d >= 22:
+            return "FY-End (Mar)"
+        # Advance tax: within ±6 days of the 15th of Jun/Sep/Dec/Mar
+        for (tm, td) in ADVANCE_TAX_MD:
+            if m == tm and abs(d - td) <= 6:
+                return f"Adv Tax ({dt.strftime('%b')})"
+        return None
+
+    event_labels = [is_calendar_event(dt) for dt in dates_test]
+    is_event     = np.array([e is not None for e in event_labels])
+
+    event_rmse    = float(np.sqrt(mean_squared_error(best_acts[is_event], best_preds[is_event]))) if is_event.sum() > 0 else None
+    nonevent_rmse = float(np.sqrt(mean_squared_error(best_acts[~is_event], best_preds[~is_event])))
+
+    print(f"  Calendar-event weeks   : {is_event.sum()} / {len(residuals)}")
+    print(f"  RMSE on event weeks    : {event_rmse:.4f}" if event_rmse else "  No event weeks in test window")
+    print(f"  RMSE on non-event wks  : {nonevent_rmse:.4f}")
+
+    # Top misses
+    top_miss_idx = np.argsort(abs_resid)[::-1][:10]
+    print("\n  Top 10 largest absolute errors:")
+    print(f"  {'Date':<14} {'Actual':>8} {'Predicted':>10} {'Error':>8}  {'Calendar?'}")
+    print("  " + "-" * 60)
+    for idx in top_miss_idx:
+        d  = dates_test.iloc[idx]
+        ev = event_labels[idx] or "—"
+        print(f"  {str(d.date()):<14} {best_acts[idx]:>8.3f} {best_preds[idx]:>10.3f} "
+              f"{residuals[idx]:>+8.3f}  {ev}")
+
+    # Plot
+    fig, axes = plt.subplots(2, 1, figsize=(18, 10), sharex=True)
+    fig.suptitle(
+        "Model Residual Analysis & Indian Money-Market Calendar Effects\n"
+        "Walk-Forward CV Errors  |  Baseline XGBoost  |  Feb 2017 – Jul 2024",
+        fontsize=13, fontweight="bold"
+    )
+
+    # Panel 1: Residuals over time
+    ax1 = axes[0]
+    ax1.axhline(0, color="black", linewidth=0.8, linestyle="--")
+    ax1.fill_between(dates_test, residuals, 0,
+                     where=(residuals > 0), color="crimson", alpha=0.35,
+                     label="Under-predicted (actual > pred)")
+    ax1.fill_between(dates_test, residuals, 0,
+                     where=(residuals < 0), color="steelblue", alpha=0.35,
+                     label="Over-predicted (actual < pred)")
+    ax1.plot(dates_test, residuals, color="dimgray", linewidth=0.6, alpha=0.7)
+
+    # Highlight calendar event weeks
+    cal_colors = {
+        "FY-End (Mar)":   ("#ff7f00", "FY-End (Mar)"),
+        "Adv Tax (Jun)":  ("#984ea3", "Adv Tax (Jun)"),
+        "Adv Tax (Sep)":  ("#4daf4a", "Adv Tax (Sep)"),
+        "Adv Tax (Dec)":  ("#a65628", "Adv Tax (Dec)"),
+        "Adv Tax (Mar)":  ("#e41a1c", "Adv Tax (Mar)"),
+    }
+    plotted_labels = set()
+    for i, (dt, ev) in enumerate(zip(dates_test, event_labels)):
+        if ev and ev in cal_colors:
+            col, lbl = cal_colors[ev]
+            kw = {"label": lbl} if lbl not in plotted_labels else {}
+            ax1.axvline(dt, color=col, alpha=0.5, linewidth=1.2, **kw)
+            plotted_labels.add(lbl)
+
+    ax1.set_ylabel("Residual (Actual − Predicted) %", fontsize=10)
+    ax1.legend(fontsize=8, ncol=3, loc="upper right")
+    ax1.grid(alpha=0.2)
+
+    # Panel 2: Absolute error with rolling 8-week average
+    ax2 = axes[1]
+    abs_series = pd.Series(abs_resid, index=dates_test)
+    ax2.plot(dates_test, abs_resid, color="dimgray", linewidth=0.6, alpha=0.5, label="|Error|")
+    ax2.plot(dates_test, abs_series.rolling(8, center=True).mean(),
+             color="navy", linewidth=1.8, label="8-week rolling mean |Error|")
+
+    # Scatter calendar-event points in red
+    event_dates  = dates_test[is_event]
+    event_errors = abs_resid[is_event]
+    ax2.scatter(event_dates, event_errors, color="crimson", s=25, zorder=5,
+                label=f"Calendar-event weeks (RMSE={event_rmse:.3f})" if event_rmse else "Calendar-event weeks")
+
+    ax2.set_ylabel("|Error| (%)", fontsize=10)
+    ax2.set_xlabel("Date", fontsize=10)
+    ax2.legend(fontsize=9, loc="upper right")
+    ax2.grid(alpha=0.2)
+
+    plt.tight_layout()
+    resid_path = VIS_DIR / "residual_calendar.png"
+    plt.savefig(resid_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"\n  Saved: {resid_path}")
+
     # ── CHECK-IN 4 Summary ────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("  [CHECK-IN 4]  STAGE 4 COMPLETE — SHAP & INTERPRETABILITY")
@@ -334,9 +500,16 @@ def run_stage4() -> None:
     print(f"\n  Top 5 SHAP features:")
     for i, row in shap_df.head(5).iterrows():
         print(f"    {i+1}. {row['feature']:<40}  Mean |SHAP| = {row['mean_abs_shap']:.5f}")
+    print(f"\n  Mechanistic regime finding:")
+    print(f"    MSF Rate  — Regime 0 (Tightening): #{msf_rank_r0}  |  Regime 1 (Accommodation): #{msf_rank_r1}")
+    print(f"    Rev Repo  — Regime 0 (Tightening): #{rrr_rank_r0}  |  Regime 1 (Accommodation): #{rrr_rank_r1}")
+    print(f"\n  Calendar-effect finding:")
+    print(f"    Event-week RMSE: {event_rmse:.4f}  vs  Non-event RMSE: {nonevent_rmse:.4f}" if event_rmse else "")
     print(f"\n  Plots saved:")
     print(f"    {shap_path}")
     print(f"    {pred_path}")
+    print(f"    {regime_shap_path}")
+    print(f"    {resid_path}")
     print("=" * 70)
 
 

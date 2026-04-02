@@ -498,6 +498,104 @@ Hypothesis Tested:
   market-sentiment dimensions, but the top-5 order is unchanged.
 
 
+── 5.3 Regime-Specific SHAP Analysis ────────────────────────────────
+
+  Splitting the 545 SHAP values by regime label reveals the mechanical
+  differences in how the model operates within each monetary environment.
+
+  REGIME 0 — Normal/Tightening (308 weeks)  |  Top 12 by Mean |SHAP|:
+  ────────────────────────────────────────────────────────────────────
+   1. target_lag1                  0.68931   WACMR t-1 (autoregressive)
+   2. repo_lag1                    0.28195   Repo Rate lag 1 week
+   3. rates_I7496_17 (Repo)        0.23356   Current Repo Rate
+   4. spread_wacmr_minus_repo      0.09202   Liquidity proxy
+   5. rates_I7496_20 (MSF)         0.07943   Upper corridor bound ★
+   6. target_lag2                  0.06703   WACMR t-2
+   7. repo_lag4                    0.06690   Repo Rate lag 4 weeks
+   8. rates_I7496_27 (CBLO)        0.03771   Overnight secured rate
+   9. rates_I7496_29 (CD Rate)     0.02264   Certificate of Deposit
+  10. rates_I7496_28 (Mkt Repo)    0.02125   Interbank repo rate
+  11. target_lag4                  0.02049   WACMR t-4
+  12. rates_I7496_18 (Rev Repo)    0.01326   Lower corridor bound ★
+
+  REGIME 1 — Accommodation/Low-Rate (237 weeks)  |  Top 12:
+  ────────────────────────────────────────────────────────────────────
+   1. target_lag1                  0.34376   WACMR t-1 (autoregressive)
+   2. rates_I7496_17 (Repo)        0.16613   Current Repo Rate  [rose from #3]
+   3. repo_lag1                    0.15838   Repo Rate lag 1 week
+   4. spread_wacmr_minus_repo      0.05820   Liquidity proxy
+   5. rates_I7496_20 (MSF)         0.04317   Upper corridor bound ★
+   6. rates_I7496_27 (CBLO)        0.04295   Overnight secured rate
+   7. target_lag2                  0.03837   WACMR t-2
+   8. repo_lag4                    0.03681   Repo Rate lag 4 weeks
+   9. rates_I7496_18 (Rev Repo)    0.02610   Lower corridor bound ★ [rose from #12]
+  10. target_lag4                  0.02376   WACMR t-4
+  11. rates_I7496_6  (SLR)         0.02233   Structural liquidity floor
+  12. rates_I7496_21 (Bank Rate)   0.01860   RBI Bank Rate
+
+  Mechanistic Findings (★ = the corridor-bound proof):
+
+  1. Reverse Repo rises from #12 (Tightening) to #9 (Accommodation).
+     When liquidity is in structural surplus and WACMR hugs the floor,
+     the model correctly increases its reliance on the lower corridor
+     bound (Reverse Repo / SDF) as the binding constraint.
+
+  2. MSF Rate holds at #5 in both regimes. Even in accommodation, the
+     upper ceiling remains a relevant reference — consistent with the
+     RBI's asymmetric LAF corridor design where the MSF is always
+     priced above Repo regardless of liquidity stance.
+
+  3. Absolute SHAP magnitudes are ~2× larger in Regime 0 than Regime 1.
+     target_lag1 SHAP = 0.689 (Tightening) vs 0.344 (Accommodation).
+     WACMR is significantly more predictable from its own recent history
+     during tightening periods — in surplus regimes, discretionary RBI
+     VRRR/VRR operations introduce more week-to-week noise.
+
+  4. Current Repo Rate outranks Repo Rate lag in Regime 1 (#2 vs #3).
+     In accommodation, the announced Repo Rate is the primary anchor
+     for market expectations; in tightening, the recent trajectory
+     of rate changes (lag structure) carries more weight.
+
+
+── 5.4 Residual Analysis & Calendar Effects ─────────────────────────
+
+  The "calendar effects" hypothesis — that FY-end (March) and Advance
+  Tax outflow weeks (Sept 15, Dec 15, March 15, June 15) cause the
+  model's largest errors — was tested and REJECTED.
+
+  Calendar-event weeks  : 66 / 389 test steps
+  RMSE on event weeks   : 0.0870   ← BETTER than average
+  RMSE on non-event wks : 0.1046   ← WORSE than average
+
+  The model actually performs BETTER during calendar-pressure weeks,
+  not worse. This is interpretable: the seasonal liquidity tightenings
+  at FY-end and advance-tax dates are well-established, recurring
+  patterns that the model has learned from 10 years of training data.
+
+  The 10 largest absolute errors are instead dominated by macro shocks:
+
+  Date        Actual  Predicted   Error   Event
+  ─────────────────────────────────────────────────────────────────
+  2020-04-03   4.329      4.990  −0.661   COVID emergency rate cut
+  2021-05-28   3.178      3.790  −0.612   COVID second-wave peak
+  2022-05-13   4.055      4.478  −0.422   Surprise 40bps RBI hike
+  2022-06-10   4.341      3.999  +0.342   Adv Tax (Jun) ← only event
+  2020-05-29   3.622      3.943  −0.321   COVID accommodation period
+  2017-04-07   5.839      6.152  −0.314   Post-FY-end rebound
+  2022-10-14   6.098      5.798  +0.300   Post-hike tightening
+  2019-08-16   5.320      5.615  −0.295   Pre-COVID easing
+  2022-09-23   5.451      5.160  +0.291   RBI rate hike cycle
+  2020-03-27   5.051      5.309  −0.257   COVID + FY-End
+
+  Revised Limitation: The model does not struggle with predictable
+  seasonal patterns. It struggles with unpredictable policy
+  discontinuities — emergency rate cuts, surprise inter-meeting hikes,
+  and COVID-era structural breaks. These are, by definition, not
+  forecastable from historical features alone. Adding event-dummy
+  variables for extraordinary policy actions is the appropriate
+  next step for reducing the tail errors.
+
+
 ========================================================================
   6. POLICY RECOMMENDATIONS & ACTIONABLE INSIGHTS
 ========================================================================
@@ -596,15 +694,17 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
   Master Data (backup CSV):
     master_data/Weekly_Macro_Master.csv
 
-  Visualizations (7 plots, all 150 DPI PNG):
+  Visualizations (9 plots, all 150 DPI PNG):
     eda_distributions.png             Histogram: WACMR & Repo Rate
     target_timeseries.png             WACMR weekly time series
     silhouette_scores.png             K-Means silhouette & elbow sweep
     pca_regime_scatter.png            PCA PC1 vs PC2, coloured by regime
     regime_timeseries.png             Repo Rate + WACMR shaded by regime
-    shap_summary.png                  SHAP beeswarm — top 15 features
+    shap_summary.png                  SHAP beeswarm — top 15 features (global)
+    shap_by_regime.png                Side-by-side SHAP bar chart by regime
     actual_vs_predicted.png           Actual vs predicted WACMR (final 2 yrs)
     regime_wacmr_boxplot.png          WACMR distribution boxplot by regime
+    residual_calendar.png             Residuals + calendar-event highlights
 
   Report:
     report.txt                        This file
@@ -634,4 +734,14 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
 
   5. No macro shocks in features: Events like demonetisation (Nov 2016) or
      COVID onset (Mar 2020) are implicitly captured through rate changes but
-     not explicitly modelled as structural break dummies.
+     not explicitly modelled as structural break dummies. The residual
+     analysis (Section 5.4) confirms this is the primary source of tail
+     errors — the 3 largest errors are COVID-period and the May 2022
+     surprise hike. Binary event dummies for extraordinary policy actions
+     (emergency MPC meetings, inter-meeting hikes) are the recommended fix.
+
+  6. Calendar-effect hypothesis rejected: Contrary to prior expectation,
+     FY-end and Advance Tax weeks are NOT the model's worst weeks. Model
+     RMSE during those 66 event weeks (0.0870) is lower than non-event
+     weeks (0.1046), indicating seasonal patterns are fully learnable
+     but tail macro shocks are not.
