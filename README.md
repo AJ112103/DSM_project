@@ -2,6 +2,19 @@
 
 Predicting India's Weighted Average Call Money Rate (WACMR) using regime clustering, XGBoost forecasting, SHAP interpretability, and NLP news analysis. Full-stack dashboard with AI-powered data agent.
 
+## Live Deployment
+
+| Surface | URL |
+| --- | --- |
+| Dashboard, simulator & blog (frontend) | **https://dsm-project-phi.vercel.app** |
+| API (backend) | **https://wacmr-api.onrender.com** |
+| Technical blog | https://dsm-project-phi.vercel.app/blog/wacmr-investigation |
+| Policy counterfactual simulator | https://dsm-project-phi.vercel.app/simulate |
+| Gemini-powered data agent | https://dsm-project-phi.vercel.app/agent |
+| Research report (with all figures) | https://dsm-project-phi.vercel.app/report |
+
+> Render's free tier cold-starts in ~30s — the first request after a period of inactivity may take a moment.
+
 ## Quick Start
 
 ### Prerequisites
