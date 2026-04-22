@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info, AlertTriangle, Lightbulb, ArrowUpRight } from "lucide-react";
+import { Info, AlertTriangle, Lightbulb, ArrowUpRight, ImageIcon } from "lucide-react";
 import { fetchAPI } from "@/lib/api";
 import { PLOTLY_DARK_LAYOUT, PLOTLY_CONFIG, CHART_COLORS } from "@/lib/plotly-theme";
 import { cn } from "@/lib/utils";
@@ -151,26 +151,89 @@ export function CodeBlock({
 
 // ─── Figure with caption ────────────────────────────────────────────────────
 
+let _figureCounter = 0;
+
 export function Figure({
   src,
   caption,
-  credit,
+  alt,
+  number,
 }: {
   src: string;
   caption?: string;
-  credit?: string;
+  alt?: string;
+  number?: number;
+}) {
+  // Auto-number when no explicit number is provided. Safe here because
+  // figures render in document order server-side → client-side.
+  const fig = number ?? ++_figureCounter;
+  return (
+    <figure className="not-prose my-10 print:break-inside-avoid">
+      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-white shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt || caption || "Figure"} loading="lazy" className="block w-full" />
+      </div>
+      {caption && (
+        <figcaption className="mt-4 flex items-start gap-3 text-[13px] leading-relaxed text-slate-400">
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
+            <ImageIcon className="h-3 w-3 text-slate-500" />
+            Figure {fig}
+          </span>
+          <span className="italic text-slate-300">{caption}</span>
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+// ─── Table ───────────────────────────────────────────────────────────────────
+
+export function BlogTable({
+  headers,
+  rows,
+  caption,
+}: {
+  headers: string[];
+  rows: (string | number | React.ReactNode)[][];
+  caption?: string;
 }) {
   return (
-    <figure className="my-8">
-      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={caption || "Figure"} className="w-full" />
+    <figure className="not-prose my-8">
+      <div className="overflow-x-auto rounded-2xl border border-slate-800">
+        <table className="min-w-full divide-y divide-slate-800 text-sm">
+          <thead className="bg-slate-900/60">
+            <tr>
+              {headers.map((h, i) => (
+                <th
+                  key={i}
+                  className="whitespace-nowrap px-4 py-3 text-left font-mono text-[10px] uppercase tracking-wider text-slate-400"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800 bg-slate-950/40">
+            {rows.map((row, r) => (
+              <tr key={r} className="hover:bg-slate-900/40">
+                {row.map((cell, c) => (
+                  <td
+                    key={c}
+                    className={cn(
+                      "px-4 py-2.5 align-top text-slate-300",
+                      c === 0 ? "font-medium text-white" : "font-mono tabular-nums"
+                    )}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      {(caption || credit) && (
-        <figcaption className="mt-3 text-xs text-slate-500">
-          {caption}
-          {credit && <span className="ml-2 text-slate-600">— {credit}</span>}
-        </figcaption>
+      {caption && (
+        <figcaption className="mt-3 text-xs italic text-slate-500">{caption}</figcaption>
       )}
     </figure>
   );
@@ -303,6 +366,175 @@ export function ShapBarEmbed({ topK = 12, caption }: { topK?: number; caption?: 
       </div>
       {caption && <figcaption className="mt-3 text-xs text-slate-500">{caption}</figcaption>}
     </figure>
+  );
+}
+
+// ─── Counterfactual simulator embed ─────────────────────────────────────────
+
+type SweepPoint = { bps: number; predicted: number; delta_pp: number; ci_lo: number; ci_hi: number };
+type SweepResponse = { base_week: string | null; base_prediction: number; points: SweepPoint[] };
+
+export function CounterfactualEmbed({
+  caption,
+}: {
+  caption?: string;
+}) {
+  const { data } = useQuery<SweepResponse | null>({
+    queryKey: ["blog-cf-sweep"],
+    queryFn: () =>
+      fetchAPI(`/api/simulate/sweep`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          deltas_bps: Array.from({ length: 17 }, (_, i) => -200 + i * 25),
+          base_week: null,
+        }),
+      }).catch(() => null),
+    retry: false,
+    staleTime: 60 * 60 * 1000,
+  });
+
+  if (!data?.points?.length) {
+    return (
+      <figure className="not-prose my-8 flex h-80 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40 text-xs text-slate-600">
+        Loading counterfactual response curve… (backend may be cold-starting)
+      </figure>
+    );
+  }
+
+  const xs = data.points.map((p) => p.bps);
+  const ys = data.points.map((p) => p.predicted);
+  const lo = data.points.map((p) => p.ci_lo);
+  const hi = data.points.map((p) => p.ci_hi);
+
+  const traces: unknown[] = [
+    {
+      type: "scatter",
+      mode: "lines",
+      name: "90% CI upper",
+      x: xs,
+      y: hi,
+      line: { color: "rgba(6,182,212,0)" },
+      showlegend: false,
+      hoverinfo: "skip",
+    },
+    {
+      type: "scatter",
+      mode: "lines",
+      name: "90% CI",
+      x: xs,
+      y: lo,
+      fill: "tonexty",
+      fillcolor: "rgba(6,182,212,0.12)",
+      line: { color: "rgba(6,182,212,0)" },
+      hoverinfo: "skip",
+    },
+    {
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Predicted WACMR",
+      x: xs,
+      y: ys,
+      line: { color: CHART_COLORS[0], width: 2.5 },
+      marker: { size: 6, color: CHART_COLORS[0] },
+      hovertemplate: "Δ repo: %{x:+d} bps<br>Pred WACMR: %{y:.3f}%<extra></extra>",
+    },
+    {
+      type: "scatter",
+      mode: "markers",
+      name: "Baseline",
+      x: [0],
+      y: [data.base_prediction],
+      marker: { size: 10, color: "#f59e0b", symbol: "diamond" },
+      hovertemplate: `Baseline: ${data.base_prediction.toFixed(3)}%<extra></extra>`,
+    },
+  ];
+
+  return (
+    <figure className="not-prose my-8">
+      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 p-2">
+        <Plot
+          data={traces as unknown as Plotly.Data[]}
+          layout={
+            {
+              ...PLOTLY_DARK_LAYOUT,
+              title: {
+                text: "Model counterfactual: predicted WACMR vs repo-rate shock (bps)",
+                font: { size: 13 },
+              },
+              height: 360,
+              margin: { l: 55, r: 20, t: 40, b: 55 },
+              xaxis: {
+                title: { text: "Repo-rate shock (basis points)", font: { size: 11 } },
+                zeroline: true,
+                zerolinecolor: "rgba(148,163,184,0.3)",
+              },
+              yaxis: {
+                title: { text: "Predicted WACMR (%)", font: { size: 11 } },
+              },
+              hovermode: "x unified",
+              legend: { orientation: "h", x: 0, y: -0.25, font: { size: 10 } },
+            } as unknown as Partial<Plotly.Layout>
+          }
+          config={PLOTLY_CONFIG}
+          useResizeHandler
+          style={{ width: "100%" }}
+        />
+      </div>
+      {caption && (
+        <figcaption className="mt-3 text-xs italic text-slate-500">{caption}</figcaption>
+      )}
+    </figure>
+  );
+}
+
+// ─── Sticky scroll-spy TOC ──────────────────────────────────────────────────
+
+export function ScrollSpyTOC({ items }: { items: { id: string; label: string }[] }) {
+  const [active, setActive] = useState("");
+  useEffect(() => {
+    if (!items.length) return;
+    const els = items
+      .map((i) => document.getElementById(i.id))
+      .filter((el): el is HTMLElement => !!el);
+    if (!els.length) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
+    );
+    els.forEach((e) => obs.observe(e));
+    return () => obs.disconnect();
+  }, [items]);
+
+  return (
+    <nav aria-label="Article outline" className="text-sm">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500">
+        On this page
+      </div>
+      <ol className="space-y-1">
+        {items.map((item) => {
+          const isActive = active === item.id;
+          return (
+            <li key={item.id}>
+              <a
+                href={`#${item.id}`}
+                className={cn(
+                  "block rounded py-1 text-[13px] leading-snug transition-colors",
+                  isActive ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                )}
+              >
+                {item.label}
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 

@@ -90,7 +90,7 @@ export default function Sidebar() {
       </div>
       {(!collapsed || mobileOpen) && (
         <div className="overflow-hidden">
-          <h1 className="truncate text-sm font-bold text-white">WACMR Analytics</h1>
+          <span className="block truncate text-sm font-bold text-white">WACMR Analytics</span>
           <p className="truncate text-[10px] text-slate-400">A data-science investigation</p>
         </div>
       )}
