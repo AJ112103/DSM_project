@@ -73,14 +73,15 @@ cd frontend && npm run dev
 
 Open **http://localhost:3000** in your browser.
 
-### 4. (Optional) Enable AI Agent
+### 4. Configure the AI Agent
 
-The AI chat agent works with rule-based responses by default. To enable LLM-powered responses:
+The agent uses **Gemini 2.5 Flash** (Google AI Studio free tier — 1,500 req/day) with real function-calling against the dataset.
 
-1. Get a free API key from [Groq Console](https://console.groq.com)
+1. Get a free API key at [aistudio.google.com](https://aistudio.google.com/)
 2. Create `backend/.env`:
    ```
-   GROQ_API_KEY=your_key_here
+   GEMINI_API_KEY=your_key_here
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 3. Restart the backend
 
@@ -100,14 +101,29 @@ DSM_project/
 ├── stage6_news_nlp.py           # NLP news sentiment pipeline
 │
 ├── backend/                     # FastAPI REST API
-│   ├── main.py                  # App entry point
-│   ├── routers/                 # API endpoints (data, analytics, forecast, news, agent)
+│   ├── main.py                  # App entry point (CORS via env var)
+│   ├── routers/                 # data, analytics, forecast, news, agent, simulate
+│   ├── agent/                   # Gemini function-calling loop + tool registry
+│   │   ├── tools.py             # run_sql, run_counterfactual, get_shap_contributions, …
+│   │   ├── gemini_client.py     # function-calling agent loop
+│   │   ├── schema_context.py    # synonym map + column catalog builder
+│   │   ├── history.py           # in-memory per-session chat history
+│   │   └── system_prompt.md     # editorial WACMR research identity
 │   ├── column_registry.py       # Human-readable column names
-│   └── ml/train_and_save.py     # Model artifact extraction
+│   └── ml/                      # train_and_save.py + saved_model/ (committed)
 │
-├── frontend/                    # Next.js 16 dashboard
-│   └── src/app/                 # 8 pages: overview, explore, dashboard,
-│                                #   regimes, forecast, news, agent, report
+├── frontend/                    # Next.js 16 dashboard + blog
+│   └── src/
+│       ├── app/                 # 10 pages: overview, explore, dashboard, regimes,
+│       │                        # forecast, simulate, news, agent, blog, report
+│       ├── components/
+│       │   ├── AgentSheet.tsx   # Floating global agent slide-over
+│       │   ├── agent/           # AgentChat + ToolPartBlock
+│       │   └── blog/            # Prose components (Callout, Stat, ChartEmbed, …)
+│       └── lib/                 # api.ts, agent-shared.ts, plotly-theme.ts
+│
+├── render.yaml                  # Backend deployment blueprint (Render)
+├── frontend/vercel.json         # Frontend deployment config (Vercel)
 │
 ├── data/                        # Raw NDAP CSVs
 ├── data_1/                      # Yahoo Finance CSVs
@@ -121,18 +137,55 @@ DSM_project/
 
 | Page | URL | Description |
 |------|-----|-------------|
-| Overview | `/` | KPI cards, project summary, navigation |
-| Data Explorer | `/explore` | Filterable, sortable table of 545 weeks x 119 columns |
-| Dashboard | `/dashboard` | Interactive Plotly charts: time series, correlations, distributions, regime composition |
-| Regimes | `/regimes` | PCA scatter plot colored by regime, regime summary cards |
-| Forecast & SHAP | `/forecast` | Actual vs predicted, SHAP feature importance, waterfall plots |
-| News & NLP | `/news` | 75 curated events, sentiment timeline, category filters |
-| AI Agent | `/agent` | Natural language queries against the dataset |
-| Report | `/report` | Full research report with TOC, search, collapsible sections |
+| Overview | `/` | Editorial landing page with live hero chart |
+| Simulator | `/simulate` | **Headline** — policy counterfactual slider with response curve, CI, and SHAP attribution |
+| AI Agent | `/agent` | Gemini 2.5 Flash with function-calling tools over the dataset |
+| Blog | `/blog` | Long-form technical write-up on the investigation |
+| Regimes | `/regimes` | PCA projection + regime fact sheets |
+| Forecast & SHAP | `/forecast` | Walk-forward actual vs predicted, SHAP importance, waterfalls |
+| Dashboard | `/dashboard` | Interactive time series, correlation heatmap, distributions |
+| Data Explorer | `/explore` | Sortable, filterable table of 545 weeks × 119 columns |
+| News & NLP | `/news` | 75 curated policy events, sentiment timeline, category filters |
+| Report | `/report` | Full generated research report with TOC |
+
+## Deployment
+
+The stack splits cleanly: **backend on Render**, **frontend on Vercel**.
+
+### Backend (Render, free tier)
+
+The `render.yaml` in the repo root defines a `web` service that installs
+`backend/requirements.txt`, starts `uvicorn`, and points the health check at
+`/api/health`.
+
+1. Connect the repo to Render, select "Blueprint", and Render will pick up `render.yaml`.
+2. In the Render service dashboard, set the `GEMINI_API_KEY` environment variable (marked `sync: false` in the blueprint so it must be set manually).
+3. After first deploy, copy the Render service URL (e.g. `https://wacmr-api.onrender.com`).
+4. Update the `CORS_ORIGINS` env var with your Vercel domain(s) — comma-separated, wildcards allowed (`https://*.vercel.app,https://your-domain.com`).
+
+The SQLite database (`dsm_project.db`, 577 KB) and model artifacts in
+`backend/ml/saved_model/` (≈ 1 MB) are committed to the repo so the Render
+instance has everything it needs at boot. No extra mounts required.
+
+### Frontend (Vercel, free tier)
+
+1. `cd frontend && npx vercel --prod` — Vercel auto-detects Next.js.
+2. In Vercel project settings, set environment variable `NEXT_PUBLIC_API_URL` to your Render URL.
+3. Optional: add a custom domain.
+
+The Next.js rewrite in `frontend/next.config.ts` proxies `/api/*` to
+`NEXT_PUBLIC_API_URL`, so the browser never sees cross-origin requests to the
+backend in production.
+
+### Notes
+
+- Render's free tier cold-starts in ~30s. The landing page includes a warmup health ping so the first interaction is fast.
+- Gemini free tier is 5 req/min per project on `gemini-2.5-flash`. For a demo day with many concurrent users, either provision a second API project or switch `GEMINI_MODEL` to `gemini-2.5-flash-lite` for a looser quota.
 
 ## Tech Stack
 
 **Analysis:** Python, pandas, scikit-learn, XGBoost, SHAP, matplotlib, seaborn
-**Backend:** FastAPI, SQLite, LangChain + Groq (LLM agent)
-**Frontend:** Next.js 16, React, Tailwind CSS, Plotly.js, TanStack Table/Query
-**Data:** 8 NDAP/RBI datasets + 2 Yahoo Finance datasets (545 weeks, 119 features)
+**Backend:** FastAPI, SQLite, Gemini 2.5 Flash with function-calling (7 typed tools incl. `run_sql`, `run_counterfactual`, `get_shap_contributions`)
+**Frontend:** Next.js 16, React 19, Tailwind CSS, Plotly.js, TanStack Query, Instrument Serif
+**Data:** 8 NDAP/RBI datasets + 2 Yahoo Finance datasets + 75 curated policy events (545 weeks, 119 features)
+**Deploy:** Render (backend) + Vercel (frontend), both free tier

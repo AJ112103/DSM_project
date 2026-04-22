@@ -8,8 +8,11 @@ echo "=========================================="
 
 # Check for .env file
 if [ ! -f backend/.env ]; then
-    echo "Creating backend/.env (add GROQ_API_KEY for AI agent)"
-    echo "GROQ_API_KEY=" > backend/.env
+    echo "Creating backend/.env — add GEMINI_API_KEY from https://aistudio.google.com/"
+    cat > backend/.env <<EOF
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+EOF
 fi
 
 # Start backend

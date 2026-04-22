@@ -12,5 +12,7 @@ run:
   network:
     port: 8000
   env:
-    - name: GROQ_API_KEY
-      value: "${GROQ_API_KEY}"
+    - name: GEMINI_API_KEY
+      value: "${GEMINI_API_KEY}"
+    - name: GEMINI_MODEL
+      value: "gemini-2.5-flash"

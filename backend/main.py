@@ -1,11 +1,18 @@
 """FastAPI application — DSM Project WACMR Analysis API."""
+import logging
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
-from .routers import data, analytics, forecast, news, agent
+from .routers import data, analytics, forecast, news, agent, simulate
 from .config import VIS_DIR, REPORT_PATH
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
+)
 
 app = FastAPI(
     title="DSM Project — WACMR Analysis API",
@@ -13,10 +20,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS
+# CORS — allow a comma-separated list of origins via CORS_ORIGINS env var.
+# Defaults to localhost dev and any vercel.app subdomain so previews work
+# out of the box. Set CORS_ORIGINS="*" to open up everything (not recommended).
+_cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+if _cors_env.strip() == "*":
+    _allow_origins = ["*"]
+    _allow_origin_regex = None
+else:
+    _raw = [o.strip() for o in _cors_env.split(",") if o.strip()]
+    _allow_origins = [o for o in _raw if "*" not in o]
+    # Convert wildcard entries like https://*.vercel.app into a regex.
+    _wildcard = [o for o in _raw if "*" in o]
+    if _wildcard:
+        import re as _re
+        _allow_origin_regex = "|".join(_re.escape(o).replace(r"\*", r".*") for o in _wildcard)
+    else:
+        _allow_origin_regex = None
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
+    allow_origin_regex=_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +53,7 @@ app.include_router(analytics.router)
 app.include_router(forecast.router)
 app.include_router(news.router)
 app.include_router(agent.router)
+app.include_router(simulate.router)
 
 # Serve static visualizations
 if VIS_DIR.exists():

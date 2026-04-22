@@ -1,740 +1,1128 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAPI } from "@/lib/api";
 import {
-  FileText,
-  Loader2,
   AlertCircle,
-  ChevronRight,
-  Clock,
   BookOpen,
-  Search,
-  X,
-  Link2,
-  ChevronDown,
-  Printer,
   ArrowUp,
+  Printer,
+  Loader2,
+  Info,
+  Lightbulb,
+  CheckCircle2,
+  HelpCircle,
+  ImageIcon,
 } from "lucide-react";
+
+import { fetchAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Types ────────────────────────────────────────────────────────────
-interface TOCItem {
-  id: string;
-  text: string;
-  level: number;
-  sectionNumber?: string;
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type Block =
+  | { kind: "p"; text: string }
+  | { kind: "ul"; items: string[] }
+  | { kind: "ol"; items: string[] }
+  | { kind: "callout"; tone: "finding" | "result" | "hypothesis" | "info"; text: string }
+  | { kind: "metric"; label: string; value: string }
+  | { kind: "table"; raw: string }
+  | { kind: "code"; raw: string };
+
+interface Figure {
+  src: string;
+  caption: string;
+  alt: string;
 }
 
-interface ParsedSection {
+interface Subsection {
   id: string;
-  type: "hero" | "major" | "sub" | "checkin";
+  number?: string;
   title: string;
-  sectionNumber?: string;
-  content: string; // pre-rendered HTML
+  blocks: Block[];
+  figures: Figure[];
 }
 
-// ── Plain Text → Structured Sections Parser ──────────────────────────
-function parseReport(raw: string): ParsedSection[] {
+interface Section {
+  id: string;
+  number?: string;
+  title: string;
+  intro: Block[];
+  introFigures: Figure[];
+  subsections: Subsection[];
+}
+
+interface ParsedReport {
+  title: string;
+  subtitle?: string;
+  meta: Record<string, string>;
+  sections: Section[];
+  raw: string;
+}
+
+// ─── Figure catalog ─────────────────────────────────────────────────────────
+// Maps section number → figures. Figures are served by FastAPI at
+// /visualizations/*.png and proxied through Next.js (see next.config.ts).
+
+const FIGURES_BY_KEY: Record<string, Figure[]> = {
+  // Section 0 — Problem statement & initial data exploration
+  "0.7": [
+    {
+      src: "/visualizations/target_timeseries.png",
+      alt: "WACMR weekly time series, Feb 2014 – Jul 2024",
+      caption:
+        "WACMR across 545 weeks. The sharp regime shift around March 2020 is visible to the eye — the first empirical clue motivating a regime-aware model.",
+    },
+    {
+      src: "/visualizations/eda_distributions.png",
+      alt: "Distribution of WACMR and key rate-corridor features",
+      caption:
+        "Distributions of WACMR and the RBI rate-corridor features. WACMR is visibly bimodal, echoing the pre- vs post-COVID regime split.",
+    },
+  ],
+
+  // Section 3 — Dataset characterisation
+  "3.3": [
+    {
+      src: "/visualizations/target_timeseries.png",
+      alt: "WACMR target variable",
+      caption:
+        "The forecasting target: weekly WACMR from February 2014 to July 2024 (545 weeks).",
+    },
+  ],
+  "3.4": [
+    {
+      src: "/visualizations/eda_distributions.png",
+      alt: "Feature distributions",
+      caption:
+        "Distributions of the most-used features after the 75% density filter (91 survivors from 109 raw NDAP columns).",
+    },
+  ],
+
+  // Section 4 — Modelling approach
+  "4.1": [
+    {
+      src: "/visualizations/silhouette_scores.png",
+      alt: "Silhouette scores for K = 2 through K = 7",
+      caption:
+        "Silhouette scores across K ∈ {2,…,7}. K = 2 maximises cohesion (0.464), corroborating the two-regime hypothesis suggested by WACMR's bimodal distribution.",
+    },
+    {
+      src: "/visualizations/pca_regime_scatter.png",
+      alt: "PCA scatter plot coloured by K-Means regime label",
+      caption:
+        "Weeks projected onto the first two principal components and coloured by K-Means label. Clusters are cleanly separable, with the boundary aligned to March 2020.",
+    },
+  ],
+  "4.2": [
+    {
+      src: "/visualizations/regime_timeseries.png",
+      alt: "Time series of WACMR with regime shading",
+      caption:
+        "WACMR with regimes overlaid. Regime 1 (pre-COVID tightening, green) dominates 2014–2020; Regime 0 (post-COVID accommodation, amber) takes over from March 2020.",
+    },
+    {
+      src: "/visualizations/regime_wacmr_boxplot.png",
+      alt: "WACMR distribution by regime",
+      caption:
+        "Regime-wise WACMR distribution. Means differ by roughly 150 basis points (6.62% vs 5.12%), and variance structure differs too.",
+    },
+  ],
+
+  // Section 5 — Results
+  "5.1": [
+    {
+      src: "/visualizations/actual_vs_predicted.png",
+      alt: "Actual vs predicted WACMR across the walk-forward test horizon",
+      caption:
+        "Walk-forward predictions against actual WACMR across 389 one-week-ahead folds. RMSE = 0.1019; Directional Accuracy = 70.9%.",
+    },
+  ],
+  "5.2": [
+    {
+      src: "/visualizations/shap_summary.png",
+      alt: "SHAP summary plot showing top features by mean absolute SHAP value",
+      caption:
+        "SHAP summary. The top 5 features are all rate-corridor variables. None of the 28 equity/forex features make the top 15 — WACMR is LAF-corridor-bound.",
+    },
+  ],
+  "5.3": [
+    {
+      src: "/visualizations/shap_by_regime.png",
+      alt: "SHAP feature importance split by regime",
+      caption:
+        "Feature importance by regime. The WACMR-Repo spread (engineered) is more decisive in Regime 0, where persistent surplus liquidity dragged WACMR below the Repo Rate.",
+    },
+  ],
+  "5.4": [
+    {
+      src: "/visualizations/residual_calendar.png",
+      alt: "Residuals by week-of-year and month-of-year",
+      caption:
+        "Residual heatmaps by calendar position. No clear seasonality survives — the calendar-effect hypothesis is rejected.",
+    },
+  ],
+};
+
+function figuresForSection(number?: string): Figure[] {
+  if (!number) return [];
+  return FIGURES_BY_KEY[number] || [];
+}
+
+// ─── Parser ─────────────────────────────────────────────────────────────────
+
+const SEP_EQUALS = /^[═=]{5,}$/;
+const SEP_DASHES = /^[─-]{40,}$/;
+const SUBSECTION = /^──\s+(.+?)\s*─{2,}?\s*$/;
+const MAJOR_NUM = /^\s*(\d+)\.\s+(.+?)(?:\s*\(.*\))?\s*$/;
+const SUB_NUM = /^(\d+\.\d+)\s+(.+?)$/;
+const METRIC_LINE = /^\s{2,}([A-Za-z][A-Za-z0-9 ./\-_]+?)\s*[:=]\s+([^\s].*)$/;
+// Column-aligned file/description pairs, e.g.:
+//   "    stage1_fetch_api_ndap.py          Data collection from NDAP API"
+// Indented 4+ spaces, then a word, then 3+ spaces of alignment padding,
+// then more text. Used to render section-7 file listings as code blocks.
+const TABULAR_LINE = /^\s{4,}\S+\s{3,}\S/;
+const BULLET = /^\s*[•▸]\s+(.+)$/;
+const LETTERED = /^\s*\(([a-z])\)\s+(.+)$/;
+const NUMBERED = /^\s+\d+\.\s+(.+)$/;
+const CHECKIN = /^\[CHECK-IN/i;
+
+const SMALL_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or",
+  "the", "to", "via", "with", "vs",
+]);
+
+const ACRONYMS = new Set([
+  "RBI", "NDAP", "WACMR", "SHAP", "PCA", "CRR", "SLR", "CPI", "MSF", "OMO",
+  "USD", "INR", "CBLO", "TREPS", "MIBOR", "MPC", "ETF", "FX", "GDP", "NPA",
+  "REER", "NEER", "CPR", "LAF", "MSS", "NSSF", "SDR", "NABARD", "CP", "CD",
+  "IIP", "IDE", "API", "SQL", "ML", "AI", "UI", "UX", "OHLCV", "XGBoost",
+]);
+
+function smartTitleCase(text: string): string {
+  const words = text.split(/(\s+|[—–/,:()]+)/);
+  return words
+    .map((w, i) => {
+      if (!/[A-Za-z]/.test(w)) return w;
+      const bare = w.replace(/[^A-Za-z]/g, "");
+      if (bare.length < 2) return w;
+      const upperBare = bare.toUpperCase();
+      if (ACRONYMS.has(upperBare)) return w.replace(bare, upperBare);
+      if (bare === upperBare) {
+        const low = w.toLowerCase();
+        if (i > 0 && SMALL_WORDS.has(low)) return low;
+        return low.replace(/[a-z]/, (c) => c.toUpperCase());
+      }
+      return w;
+    })
+    .join("");
+}
+
+function slug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 60);
+}
+
+function parseReport(raw: string): ParsedReport {
+  const out: ParsedReport = {
+    title: "Full research report",
+    meta: {},
+    sections: [],
+    raw,
+  };
+  if (!raw) return out;
+
   const lines = raw.split("\n");
-  const sections: ParsedSection[] = [];
-  let currentSection: ParsedSection | null = null;
-  let contentLines: string[] = [];
-  let sectionIdx = 0;
 
-  const flushSection = () => {
-    if (currentSection) {
-      currentSection.content = renderContentLines(contentLines);
-      sections.push(currentSection);
-      contentLines = [];
+  // Pass 1 — header/meta
+  let i = 0;
+  let lastKey: string | null = null;
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (SEP_EQUALS.test(trimmed)) {
+      const next = lines[i + 1]?.trim() || "";
+      if (/^\d+\.\s/.test(next)) break;
+      i++; lastKey = null; continue;
     }
+
+    if (!trimmed) { lastKey = null; i++; continue; }
+
+    if (/^DSM PROJECT/i.test(trimmed)) {
+      out.title = smartTitleCase(
+        trimmed.replace(/^DSM PROJECT\s*[—\-]\s*/i, "")
+      );
+      lastKey = null;
+      i++; continue;
+    }
+
+    const m = trimmed.match(/^([A-Za-z][A-Za-z0-9 /]*?)\s*:\s+(.+)$/);
+    if (m && !/^\d/.test(m[1])) {
+      lastKey = m[1].trim();
+      out.meta[lastKey] = m[2].trim();
+    } else if (lastKey && /^\s+/.test(rawLine)) {
+      out.meta[lastKey] = `${out.meta[lastKey]} ${trimmed}`;
+    } else if (!out.subtitle && trimmed.length > 10 && !/^[─-]+$/.test(trimmed)) {
+      out.subtitle = trimmed;
+      lastKey = null;
+    }
+    i++;
+  }
+
+  // Pass 2 — section body
+  let currentSection: Section | null = null;
+  let currentSub: Subsection | null = null;
+  const startNewSection = (title: string, number?: string) => {
+    currentSub = null;
+    currentSection = {
+      id: slug(number ? `${number}-${title}` : title),
+      number,
+      title,
+      intro: [],
+      introFigures: [],
+      subsections: [],
+    };
+    out.sections.push(currentSection);
+  };
+  const startNewSubsection = (title: string, number?: string) => {
+    if (!currentSection) startNewSection("Overview");
+    currentSub = {
+      id: slug(number ? `${number}-${title}` : title),
+      number,
+      title,
+      blocks: [],
+      figures: number ? figuresForSection(number) : [],
+    };
+    currentSection!.subsections.push(currentSub);
+  };
+  const blocksTarget = (): Block[] => {
+    if (!currentSection) startNewSection("Overview");
+    if (currentSub) return currentSub.blocks;
+    return currentSection!.intro;
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Skip pure separator lines
-    if (/^[═=]{5,}$/.test(trimmed)) continue;
-    if (/^[─-]{60,}$/.test(trimmed)) continue;
-
-    // Major section: text between ═══ lines
-    const prevIsSep = i > 0 && /^[═=]{5,}$/.test(lines[i - 1]?.trim() || "");
-    const nextIsSep = i < lines.length - 1 && /^[═=]{5,}$/.test(lines[i + 1]?.trim() || "");
-
-    if (prevIsSep && nextIsSep && trimmed.length > 0) {
-      flushSection();
-      const numMatch = trimmed.match(/^\s*(\d+)\.\s+/);
-      currentSection = {
-        id: `section-${sectionIdx++}`,
-        type: sectionIdx === 1 ? "hero" : "major",
-        title: trimmed.replace(/^\s+/, ""),
-        sectionNumber: numMatch ? numMatch[1] : undefined,
-      content: "",
-      };
-      continue;
+  let listBuf: string[] = [];
+  let listKind: "ul" | "ol" | null = null;
+  const flushList = () => {
+    if (listBuf.length && listKind) {
+      blocksTarget().push({ kind: listKind, items: listBuf.slice() });
     }
+    listBuf = [];
+    listKind = null;
+  };
 
-    // Subsection: lines starting with ──
-    if (/^──\s+/.test(trimmed)) {
-      flushSection();
-      const title = trimmed.replace(/^──\s+/, "").replace(/\s+──+$/, "").trim();
-      const numMatch = title.match(/^(\d+\.\d+)\s+/);
-      currentSection = {
-        id: `section-${sectionIdx++}`,
-        type: "sub",
-        title,
-        sectionNumber: numMatch ? numMatch[1] : undefined,
-        content: "",
-      };
-      continue;
-    }
-
-    // CHECK-IN headers
-    if (/^\[CHECK-IN/.test(trimmed)) {
-      flushSection();
-      currentSection = {
-        id: `section-${sectionIdx++}`,
-        type: "checkin",
-        title: trimmed,
-        content: "",
-      };
-      continue;
-    }
-
-    // Content lines
-    contentLines.push(line);
-  }
-  flushSection();
-  return sections;
-}
-
-// ── Content Line Renderer ────────────────────────────────────────────
-function renderContentLines(lines: string[]): string {
-  const html: string[] = [];
-  let inTable = false;
-  let tableLines: string[] = [];
-
+  let tableBuf: string[] = [];
   const flushTable = () => {
-    if (tableLines.length > 0) {
-      html.push(`<div class="report-table"><pre>${tableLines.join("\n")}</pre></div>`);
-      tableLines = [];
+    if (tableBuf.length) {
+      blocksTarget().push({ kind: "table", raw: tableBuf.join("\n") });
     }
-    inTable = false;
+    tableBuf = [];
   };
 
-  for (const line of lines) {
+  let codeBuf: string[] = [];
+  const flushCode = () => {
+    if (codeBuf.length) {
+      blocksTarget().push({ kind: "code", raw: codeBuf.join("\n") });
+    }
+    codeBuf = [];
+  };
+
+  // Coalesce consecutive prose lines into a single paragraph block. The
+  // source report wraps hard at ~68 cols, so each "line" is a visual line,
+  // not a semantic paragraph. We join runs of prose lines (broken only by
+  // blank lines or structural blocks) into single <p> elements.
+  let paraBuf: string[] = [];
+  const flushPara = () => {
+    if (paraBuf.length) {
+      const joined = paraBuf.join(" ").replace(/\s+/g, " ").trim();
+      if (joined) blocksTarget().push({ kind: "p", text: joined });
+      paraBuf = [];
+    }
+  };
+  const flushAll = () => {
+    flushPara();
+    flushList();
+    flushTable();
+    flushCode();
+  };
+
+  while (i < lines.length) {
+    const raw = lines[i];
+    const line = raw.trimEnd();
     const trimmed = line.trim();
 
-    // ASCII table detection
-    if (/[┌┐┤├└┘│─┼]/.test(trimmed) || (inTable && /^\s*│/.test(line))) {
-      inTable = true;
-      tableLines.push(escapeHtml(line));
-      continue;
+    if (SEP_EQUALS.test(trimmed) || SEP_DASHES.test(trimmed)) {
+      flushPara();
+      i++; continue;
     }
-    if (inTable && trimmed.length === 0) {
+
+    // Detect subsection BEFORE the table check — subsection markers contain
+    // horizontal box-drawing characters (─) but aren't actually tables.
+    const earlySubMatch = trimmed.match(SUBSECTION);
+
+    // A real box-drawing table contains vertical/corner characters, not just
+    // horizontal ones. Narrowing the regex here prevents subsection markers
+    // (which contain only ─) from being mis-classified as tables.
+    if (!earlySubMatch && /[┌┐┤├└┘│┼]/.test(trimmed)) {
+      flushPara(); flushList();
+      tableBuf.push(line);
+      i++; continue;
+    } else if (tableBuf.length) {
       flushTable();
-      continue;
-    }
-    if (inTable) {
-      flushTable();
     }
 
-    if (trimmed.length === 0) {
-      html.push("");
-      continue;
+    const prevSep = i > 0 && SEP_EQUALS.test(lines[i - 1].trim());
+    const nextSep = i + 1 < lines.length && SEP_EQUALS.test(lines[i + 1].trim());
+    if (prevSep && nextSep && trimmed.length > 0) {
+      flushAll();
+      const m = trimmed.match(MAJOR_NUM);
+      if (m) startNewSection(smartTitleCase(m[2].trim()), m[1]);
+      else startNewSection(smartTitleCase(trimmed));
+      if (currentSection && m) {
+        currentSection.introFigures = figuresForSection(m[1]);
+      }
+      i++; continue;
+    }
+    if (prevSep && !nextSep && trimmed.length > 0 && /^\d+\.\s/.test(trimmed)) {
+      flushAll();
+      const m = trimmed.match(MAJOR_NUM);
+      if (m) startNewSection(smartTitleCase(m[2].trim()), m[1]);
+      else startNewSection(smartTitleCase(trimmed));
+      let j = i + 1;
+      while (j < lines.length && /^\s+\S/.test(lines[j]) && lines[j].trim().length) {
+        currentSection!.title += " " + smartTitleCase(lines[j].trim());
+        j++;
+      }
+      if (currentSection && m) {
+        currentSection.introFigures = figuresForSection(m[1]);
+      }
+      i = j; continue;
     }
 
-    // Key Finding callout
-    if (/^Key Finding \d+/i.test(trimmed)) {
-      html.push(`<div class="callout callout-finding">${escapeHtml(trimmed)}</div>`);
-      continue;
+    const subMatch = trimmed.match(SUBSECTION);
+    if (subMatch) {
+      flushAll();
+      const innerTitle = subMatch[1].trim();
+      const nm = innerTitle.match(SUB_NUM);
+      startNewSubsection(
+        smartTitleCase(nm ? nm[2] : innerTitle),
+        nm ? nm[1] : undefined
+      );
+      i++; continue;
     }
 
-    // RESULT callout
-    if (/^RESULT/i.test(trimmed)) {
-      html.push(`<div class="callout callout-result">${escapeHtml(trimmed)}</div>`);
-      continue;
+    if (CHECKIN.test(trimmed)) {
+      flushAll();
+      blocksTarget().push({ kind: "callout", tone: "info", text: trimmed });
+      i++; continue;
     }
 
-    // Hypothesis
-    if (/^Hypothesis/i.test(trimmed)) {
-      html.push(`<div class="callout callout-hypothesis">${escapeHtml(trimmed)}</div>`);
-      continue;
+    if (/^Key Finding\b/i.test(trimmed) || /^Mechanistic Finding\b/i.test(trimmed)) {
+      flushAll();
+      blocksTarget().push({ kind: "callout", tone: "finding", text: trimmed });
+      i++; continue;
+    }
+    if (/^RESULT\b/i.test(trimmed)) {
+      flushAll();
+      blocksTarget().push({ kind: "callout", tone: "result", text: trimmed });
+      i++; continue;
+    }
+    if (/^Hypothesis\b/i.test(trimmed)) {
+      flushAll();
+      blocksTarget().push({ kind: "callout", tone: "hypothesis", text: trimmed });
+      i++; continue;
     }
 
-    // Mechanistic Finding
-    if (/Mechanistic Finding/i.test(trimmed)) {
-      html.push(`<div class="callout callout-finding">${escapeHtml(trimmed)}</div>`);
-      continue;
+    const b = trimmed.match(BULLET);
+    if (b) {
+      flushPara();
+      if (listKind && listKind !== "ul") flushList();
+      listKind = "ul";
+      listBuf.push(b[1]);
+      i++; continue;
+    }
+    const lm = trimmed.match(LETTERED);
+    if (lm) {
+      flushPara();
+      if (listKind && listKind !== "ol") flushList();
+      listKind = "ol";
+      listBuf.push(`(${lm[1]}) ${lm[2]}`);
+      i++; continue;
+    }
+    const nm = raw.match(NUMBERED);
+    if (nm) {
+      flushPara();
+      if (listKind && listKind !== "ol") flushList();
+      listKind = "ol";
+      listBuf.push(nm[1]);
+      i++; continue;
     }
 
-    // Star-marked features (★)
-    if (/★/.test(trimmed)) {
-      html.push(`<p class="star-line">${escapeHtml(trimmed).replace(/★/g, '<span class="star">★</span>')}</p>`);
-      continue;
+    // Blank line: end any open paragraph, but keep the list open so that
+    // items separated by blank lines still form a single <ol>/<ul>.
+    if (!trimmed) {
+      flushPara();
+      i++; continue;
     }
 
-    // Bullet points
-    if (/^\s*[•▸]\s/.test(line)) {
-      html.push(`<li>${escapeHtml(trimmed.replace(/^[•▸]\s*/, ""))}</li>`);
-      continue;
+    // Continuation of the previous list item: indented, non-empty, not a
+    // new bullet/number, and not at column 0. Append to the last item.
+    if (listKind && listBuf.length && /^\s+/.test(raw)) {
+      listBuf[listBuf.length - 1] = listBuf[listBuf.length - 1] + " " + trimmed;
+      i++; continue;
     }
 
-    // Numbered items like (a), (b), 1., 2.
-    if (/^\s+\([a-z]\)\s/.test(line) || /^\s+\d+\.\s/.test(line)) {
-      html.push(`<li>${escapeHtml(trimmed)}</li>`);
-      continue;
+    // A non-indented / clearly new prose line while a list is open ends it.
+    if (listKind) flushList();
+
+    // Column-aligned tabular listings render as code blocks.
+    if (TABULAR_LINE.test(line)) {
+      flushPara();
+      codeBuf.push(line);
+      i++; continue;
+    } else if (codeBuf.length) {
+      flushCode();
     }
 
-    // Metric/stat lines with colons (e.g., "RMSE : 0.1019")
-    if (/^\s{2,}\S.*:\s+\S/.test(line) && trimmed.length < 120) {
-      html.push(`<p class="metric-line">${escapeHtml(trimmed)}</p>`);
-      continue;
+    const mm = line.match(METRIC_LINE);
+    if (mm && mm[2].length < 80) {
+      flushPara();
+      blocksTarget().push({ kind: "metric", label: mm[1].trim(), value: mm[2].trim() });
+      i++; continue;
     }
 
-    // Regular paragraph
-    html.push(`<p>${escapeHtml(trimmed)}</p>`);
+    // Regular prose line — accumulate into the current paragraph buffer.
+    paraBuf.push(trimmed);
+    i++;
   }
 
-  flushTable();
-  return html.join("\n");
+  flushAll();
+  return out;
 }
 
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+// ─── Reading time ───────────────────────────────────────────────────────────
 
-// ── Reading Time ─────────────────────────────────────────────────────
 function estimateReadingTime(text: string): number {
   const words = text.split(/\s+/).filter(Boolean).length;
-  return Math.ceil(words / 220);
+  return Math.max(1, Math.ceil(words / 220));
 }
 
-// ── Main Component ───────────────────────────────────────────────────
-export default function ReportPage() {
-  const [activeSection, setActiveSection] = useState("");
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+// ─── Figure renderer ────────────────────────────────────────────────────────
 
-  const { data: reportData, isLoading, error } = useQuery({
-    queryKey: ["report"],
+function FigureBlock({
+  figure,
+  number,
+}: {
+  figure: Figure;
+  number: number;
+}) {
+  return (
+    <figure className="my-10 print:break-inside-avoid">
+      <div className="overflow-hidden rounded-2xl border border-slate-800/80 bg-white shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_20px_40px_-20px_rgba(0,0,0,0.6)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={figure.src}
+          alt={figure.alt}
+          loading="lazy"
+          className="block h-auto w-full"
+        />
+      </div>
+      <figcaption className="mt-4 flex items-start gap-3 text-[13px] leading-relaxed text-slate-400">
+        <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
+          <ImageIcon className="h-3 w-3 text-slate-500" />
+          Figure {number}
+        </span>
+        <span className="italic text-slate-300">{figure.caption}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+// ─── Block renderers ────────────────────────────────────────────────────────
+
+function BlockRender({ block }: { block: Block }) {
+  if (block.kind === "p") {
+    return (
+      <p className="text-[17px] leading-[1.75] text-slate-300">{block.text}</p>
+    );
+  }
+  if (block.kind === "ul") {
+    return (
+      <ul className="ml-5 list-disc space-y-2 text-[17px] leading-[1.75] text-slate-300 marker:text-slate-600">
+        {block.items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
+    );
+  }
+  if (block.kind === "ol") {
+    return (
+      <ol className="ml-5 list-decimal space-y-2 text-[17px] leading-[1.75] text-slate-300 marker:text-slate-500">
+        {block.items.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ol>
+    );
+  }
+  if (block.kind === "metric") {
+    return (
+      <div className="flex items-baseline gap-3 font-mono text-sm tabular-nums">
+        <span className="text-slate-500">{block.label}</span>
+        <span className="h-px flex-1 self-center border-t border-dashed border-slate-800" />
+        <span className="text-slate-200">{block.value}</span>
+      </div>
+    );
+  }
+  if (block.kind === "table") {
+    return (
+      <div className="my-5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 print:break-inside-avoid">
+        <pre className="whitespace-pre font-mono text-[11.5px] leading-tight text-slate-300">
+          {block.raw}
+        </pre>
+      </div>
+    );
+  }
+  if (block.kind === "code") {
+    return (
+      <pre className="my-5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-[12.5px] leading-relaxed text-slate-300">
+        {block.raw}
+      </pre>
+    );
+  }
+  if (block.kind === "callout") {
+    const config = {
+      finding: {
+        Icon: Lightbulb,
+        border: "border-emerald-500/30",
+        bg: "bg-emerald-500/[0.07]",
+        text: "text-emerald-200",
+        label: "Finding",
+        labelColor: "text-emerald-400/90",
+      },
+      result: {
+        Icon: CheckCircle2,
+        border: "border-cyan-500/30",
+        bg: "bg-cyan-500/[0.07]",
+        text: "text-cyan-100",
+        label: "Result",
+        labelColor: "text-cyan-400/90",
+      },
+      hypothesis: {
+        Icon: HelpCircle,
+        border: "border-amber-500/30",
+        bg: "bg-amber-500/[0.07]",
+        text: "text-amber-100",
+        label: "Hypothesis",
+        labelColor: "text-amber-400/90",
+      },
+      info: {
+        Icon: Info,
+        border: "border-slate-700/50",
+        bg: "bg-slate-800/40",
+        text: "text-slate-200",
+        label: "Note",
+        labelColor: "text-slate-400",
+      },
+    }[block.tone];
+    const Icon = config.Icon;
+    return (
+      <aside
+        className={cn(
+          "my-5 flex items-start gap-4 rounded-2xl border p-5 print:break-inside-avoid",
+          config.border,
+          config.bg
+        )}
+      >
+        <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", config.labelColor)} />
+        <div className="flex-1 space-y-1">
+          <div
+            className={cn(
+              "font-mono text-[10px] uppercase tracking-[0.18em]",
+              config.labelColor
+            )}
+          >
+            {config.label}
+          </div>
+          <div className={cn("text-[15px] leading-[1.7]", config.text)}>
+            {block.text}
+          </div>
+        </div>
+      </aside>
+    );
+  }
+  return null;
+}
+
+function BlockGroup({ blocks }: { blocks: Block[] }) {
+  const groups: Array<
+    { kind: "metric-group"; items: { label: string; value: string }[] } | Block
+  > = [];
+  let buf: { label: string; value: string }[] = [];
+  for (const b of blocks) {
+    if (b.kind === "metric") {
+      buf.push({ label: b.label, value: b.value });
+    } else {
+      if (buf.length) {
+        groups.push({ kind: "metric-group", items: buf });
+        buf = [];
+      }
+      groups.push(b);
+    }
+  }
+  if (buf.length) groups.push({ kind: "metric-group", items: buf });
+
+  return (
+    <div className="space-y-5">
+      {groups.map((g, i) =>
+        "kind" in g && g.kind === "metric-group" ? (
+          <div
+            key={i}
+            className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-5 py-4"
+          >
+            {g.items.map((m, j) => (
+              <div
+                key={j}
+                className="flex items-baseline gap-3 font-mono text-sm tabular-nums"
+              >
+                <span className="text-slate-400">{m.label}</span>
+                <span className="h-px flex-1 self-center border-t border-dashed border-slate-800" />
+                <span className="text-slate-100">{m.value}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <BlockRender key={i} block={g as Block} />
+        )
+      )}
+    </div>
+  );
+}
+
+// ─── Sticky TOC ─────────────────────────────────────────────────────────────
+
+function TableOfContents({
+  sections,
+  activeId,
+}: {
+  sections: Section[];
+  activeId: string;
+}) {
+  return (
+    <nav aria-label="Table of contents" className="text-sm">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500">
+        On this page
+      </div>
+      <ol className="space-y-1">
+        {sections.map((s) => {
+          const isActive =
+            activeId === s.id ||
+            s.subsections.some((sub) => sub.id === activeId);
+          return (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className={cn(
+                  "flex items-baseline gap-2 rounded py-1 pr-2 text-[13px] leading-snug transition-colors",
+                  isActive
+                    ? "text-cyan-300"
+                    : "text-slate-400 hover:text-slate-200"
+                )}
+              >
+                {s.number && (
+                  <span
+                    className={cn(
+                      "w-6 shrink-0 font-mono text-[10px]",
+                      isActive ? "text-cyan-400/80" : "text-slate-600"
+                    )}
+                  >
+                    {s.number}
+                  </span>
+                )}
+                <span className="flex-1">{s.title}</span>
+              </a>
+              {s.subsections.length > 0 && isActive && (
+                <ol className="mt-1 ml-6 space-y-0.5 border-l border-slate-800 pl-3">
+                  {s.subsections.map((sub) => (
+                    <li key={sub.id}>
+                      <a
+                        href={`#${sub.id}`}
+                        className={cn(
+                          "block rounded py-1 text-[12px] leading-snug transition-colors hover:text-slate-300",
+                          activeId === sub.id
+                            ? "text-cyan-300"
+                            : "text-slate-500"
+                        )}
+                      >
+                        {sub.number && (
+                          <span
+                            className={cn(
+                              "mr-1.5 font-mono text-[10px]",
+                              activeId === sub.id
+                                ? "text-cyan-400/70"
+                                : "text-slate-600"
+                            )}
+                          >
+                            {sub.number}
+                          </span>
+                        )}
+                        {sub.title}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+// ─── Hero stats ribbon ──────────────────────────────────────────────────────
+
+const HEADLINE_STATS: { label: string; value: string; sub?: string }[] = [
+  { label: "Weeks", value: "545", sub: "2014 – 2024" },
+  { label: "Features", value: "119", sub: "5 domains" },
+  { label: "Regimes", value: "2", sub: "silhouette 0.46" },
+  { label: "RMSE", value: "0.1019", sub: "one week ahead" },
+  { label: "DA", value: "70.9%", sub: "directional acc." },
+];
+
+function HeroStats() {
+  return (
+    <dl className="grid grid-cols-2 divide-slate-800 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-5 sm:divide-x">
+      {HEADLINE_STATS.map((s, i) => (
+        <div
+          key={s.label}
+          className={cn(
+            "px-4 py-3 sm:py-4",
+            i < HEADLINE_STATS.length - 1 &&
+              "border-b border-slate-800 sm:border-b-0",
+            // remove right border on mobile last items handled by divide-x being sm+
+          )}
+        >
+          <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+            {s.label}
+          </dt>
+          <dd className="mt-1 font-mono text-xl tabular-nums text-white">
+            {s.value}
+          </dd>
+          {s.sub && (
+            <dd className="mt-0.5 text-[11px] text-slate-500">{s.sub}</dd>
+          )}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────
+
+export default function ReportPage() {
+  const [activeId, setActiveId] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["report-content"],
     queryFn: () => fetchAPI("/api/report"),
   });
 
-  const rawText = useMemo(() => {
-    if (!reportData) return "";
-    return reportData.content || reportData.html || reportData.report || "";
-  }, [reportData]);
+  const raw = data?.content || "";
+  const parsed = useMemo(() => parseReport(raw), [raw]);
+  const readingTime = useMemo(() => estimateReadingTime(raw), [raw]);
+  const wordCount = useMemo(
+    () => raw.split(/\s+/).filter(Boolean).length,
+    [raw]
+  );
 
-  const sections = useMemo(() => parseReport(rawText), [rawText]);
-  const readingTime = useMemo(() => estimateReadingTime(rawText), [rawText]);
-  const wordCount = useMemo(() => rawText.split(/\s+/).filter(Boolean).length, [rawText]);
+  // Assign monotonically-increasing figure numbers in document order so
+  // every Figure N caption matches the document flow.
+  const figureNumbers = useMemo(() => {
+    const map = new Map<string, number>();
+    let n = 1;
+    for (const section of parsed.sections) {
+      for (const fig of section.introFigures) {
+        map.set(fig.src + "@" + section.id, n++);
+      }
+      for (const sub of section.subsections) {
+        for (const fig of sub.figures) {
+          map.set(fig.src + "@" + sub.id, n++);
+        }
+      }
+    }
+    return map;
+  }, [parsed]);
 
-  const toc = useMemo<TOCItem[]>(() => {
-    return sections
-      .filter((s) => s.type !== "hero")
-      .map((s) => ({
-        id: s.id,
-        text: s.title,
-        level: s.type === "major" || s.type === "checkin" ? 1 : 2,
-        sectionNumber: s.sectionNumber,
-      }));
-  }, [sections]);
+  const totalFigures = figureNumbers.size;
 
-  // Scroll progress bar
+  const allIds = useMemo(
+    () =>
+      parsed.sections.flatMap((s) => [
+        s.id,
+        ...s.subsections.map((sub) => sub.id),
+      ]),
+    [parsed]
+  );
+
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
-      setShowBackToTop(scrollTop > 600);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Intersection observer for active TOC tracking
-  useEffect(() => {
-    if (!contentRef.current) return;
-    const headings = contentRef.current.querySelectorAll("[data-section-id]");
-    if (headings.length === 0) return;
+    if (!allIds.length) return;
+    const elements = allIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => !!el);
+    if (!elements.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const id = (entry.target as HTMLElement).dataset.sectionId || "";
-            setActiveSection(id);
-            history.replaceState(null, "", `#${id}`);
-          }
-        }
+        const inView = entries
+          .filter((e) => e.isIntersecting)
+          .sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+          );
+        if (inView[0]) setActiveId(inView[0].target.id);
       },
-      { rootMargin: "-80px 0px -70% 0px" }
+      { rootMargin: "-15% 0px -70% 0px", threshold: 0 }
     );
-
-    headings.forEach((h) => observer.observe(h));
+    elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [sections]);
+  }, [allIds]);
 
-  // Keyboard shortcut for search
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        // Only intercept if not in an input
-        if (document.activeElement?.tagName !== "INPUT") {
-          e.preventDefault();
-          setSearchOpen(true);
-          setTimeout(() => searchInputRef.current?.focus(), 100);
-        }
-      }
-      if (e.key === "Escape") setSearchOpen(false);
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const scrollHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(scrollHeight > 0 ? scrollTop / scrollHeight : 0);
+      setShowBackToTop(scrollTop > 600);
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const scrollToSection = useCallback((id: string) => {
-    const el = document.querySelector(`[data-section-id="${id}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveSection(id);
-    }
-  }, []);
-
-  const toggleSection = useCallback((id: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const copyLink = useCallback((id: string) => {
-    const url = `${window.location.origin}${window.location.pathname}#${id}`;
-    navigator.clipboard.writeText(url);
-  }, []);
-
-  // Search highlighting
-  const highlightedSections = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return new Set<string>();
-    const q = searchQuery.toLowerCase();
-    const matches = new Set<string>();
-    for (const s of sections) {
-      if (s.title.toLowerCase().includes(q) || s.content.toLowerCase().includes(q)) {
-        matches.add(s.id);
-      }
-    }
-    return matches;
-  }, [searchQuery, sections]);
-
-  const searchResultCount = highlightedSections.size;
-
-  // ── Render ─────────────────────────────────────────────────────────
-  return (
-    <div className="relative mx-auto max-w-[90rem]">
-      {/* Reading Progress Bar */}
-      <div className="fixed left-0 top-0 z-50 h-[3px] w-full bg-slate-900/50 print:hidden">
-        <div
-          className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-purple-500 transition-[width] duration-150"
-          style={{ width: `${scrollProgress}%` }}
-        />
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-5xl items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
       </div>
+    );
+  }
 
-      {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/20">
-            <FileText className="h-6 w-6 text-orange-400" />
-          </div>
+  if (error || !raw) {
+    return (
+      <div className="mx-auto max-w-2xl py-24">
+        <div className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm text-rose-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold text-white">Project Report</h1>
-            <div className="mt-1 flex items-center gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {readingTime} min read
-              </span>
-              <span className="flex items-center gap-1">
-                <BookOpen className="h-3 w-3" />
-                {wordCount.toLocaleString()} words
-              </span>
-              <span>{sections.length} sections</span>
+            <div className="font-semibold">Report unavailable.</div>
+            <div className="mt-1 text-rose-400/80">
+              Run <code>python3 stage5_synthesis.py</code> to generate the
+              report artifact, then refresh this page.
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
-          {/* Search Toggle */}
-          <button
-            onClick={() => {
-              setSearchOpen(!searchOpen);
-              if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 100);
-            }}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-            title="Search (Ctrl+F)"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-          {/* Print */}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      {/* Reading-progress bar */}
+      <div
+        className="fixed left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-[width] print:hidden"
+        style={{ width: `${progress * 100}%` }}
+        aria-hidden
+      />
+
+      {/* Hero */}
+      <header className="space-y-7 border-b border-slate-800 pb-12">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.25em] text-cyan-400">
+          <BookOpen className="h-3.5 w-3.5" />
+          {parsed.title || "Full research report"}
+        </div>
+        <h1
+          className="text-balance text-4xl leading-[1.02] tracking-tight text-white sm:text-5xl lg:text-[64px]"
+          style={{ fontFamily: "var(--font-instrument-serif)" }}
+        >
+          {parsed.meta.Project ||
+            "Predicting India's Weighted Average Call Money Rate via monetary regime clustering & XGBoost"}
+        </h1>
+        {parsed.subtitle && !parsed.meta.Project && (
+          <p className="max-w-3xl text-lg leading-relaxed text-slate-400">
+            {parsed.subtitle}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+          <span>{readingTime} min read</span>
+          <span className="text-slate-700">·</span>
+          <span>{wordCount.toLocaleString()} words</span>
+          <span className="text-slate-700">·</span>
+          <span>{parsed.sections.length} sections</span>
+          {totalFigures > 0 && (
+            <>
+              <span className="text-slate-700">·</span>
+              <span>{totalFigures} figures</span>
+            </>
+          )}
+          {parsed.meta.Generated && (
+            <>
+              <span className="text-slate-700">·</span>
+              <span>Generated {parsed.meta.Generated}</span>
+            </>
+          )}
           <button
             onClick={() => window.print()}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-            title="Print / Save as PDF"
+            className="ml-auto hidden items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1 text-[11px] text-slate-400 hover:border-slate-600 hover:text-slate-200 sm:inline-flex print:hidden"
           >
-            <Printer className="h-4 w-4" />
+            <Printer className="h-3 w-3" />
+            Print
           </button>
         </div>
-      </div>
-
-      {/* Search Bar */}
-      {searchOpen && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 print:hidden">
-          <Search className="h-4 w-4 shrink-0 text-slate-500" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search within report..."
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-            autoFocus
-          />
-          {searchQuery && (
-            <span className="shrink-0 text-xs text-slate-500">
-              {searchResultCount} {searchResultCount === 1 ? "match" : "matches"}
-            </span>
-          )}
-          <button onClick={() => { setSearchQuery(""); setSearchOpen(false); }} className="text-slate-500 hover:text-white">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="flex h-96 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-        </div>
-      ) : error ? (
-        <div className="flex h-96 flex-col items-center justify-center gap-3">
-          <AlertCircle className="h-8 w-8 text-rose-400" />
-          <p className="text-rose-400">{error instanceof Error ? error.message : "Failed to load report"}</p>
-        </div>
-      ) : (
-        <div className="flex gap-8">
-          {/* ── Sticky TOC Sidebar ─────────────────────────────────── */}
-          <aside className="hidden w-64 shrink-0 xl:block print:hidden">
-            <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-thin">
-              <h3 className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
-                Table of Contents
-              </h3>
-              <nav className="space-y-0.5">
-                {toc.map((item) => {
-                  const isActive = activeSection === item.id;
-                  const isSearchMatch = highlightedSections.has(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => scrollToSection(item.id)}
-                      className={cn(
-                        "group flex w-full items-start gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] leading-snug transition-all duration-200",
-                        isActive
-                          ? "bg-blue-500/10 text-blue-400 font-medium"
-                          : isSearchMatch
-                            ? "bg-amber-500/10 text-amber-300"
-                            : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-300",
-                        item.level === 2 && "ml-3 border-l border-slate-800 pl-3",
-                      )}
-                    >
-                      {item.level === 1 && (
-                        <span className={cn(
-                          "mt-px inline-block h-1.5 w-1.5 shrink-0 rounded-full transition-colors",
-                          isActive ? "bg-blue-400" : "bg-slate-700 group-hover:bg-slate-500"
-                        )} />
-                      )}
-                      <span className="truncate">{item.text.replace(/^\d+\.\d*\s*/, "").replace(/\(Part.*?\)/, "").trim()}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {/* Visualization Gallery Link */}
-              <div className="mt-6 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">Visualizations</p>
-                <div className="mt-2 grid grid-cols-2 gap-1">
-                  {["eda_distributions", "pca_regime_scatter", "shap_summary", "actual_vs_predicted"].map((name) => (
-                    <img
-                      key={name}
-                      src={`/visualizations/${name}.png`}
-                      alt={name}
-                      className="h-12 w-full rounded border border-slate-800 object-cover opacity-70 transition hover:opacity-100 cursor-pointer"
-                      onClick={() => {
-                        const el = document.getElementById("viz-gallery");
-                        el?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                    />
-                  ))}
+        <HeroStats />
+        {Object.keys(parsed.meta).length > 0 && (
+          <dl className="grid gap-x-8 gap-y-2 pt-2 text-[13px] sm:grid-cols-2">
+            {Object.entries(parsed.meta)
+              .filter(([k]) => k !== "Generated" && k !== "Project")
+              .map(([k, v]) => (
+                <div key={k} className="flex flex-wrap gap-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                    {k}
+                  </dt>
+                  <dd className="flex-1 text-slate-300">{v}</dd>
                 </div>
-              </div>
-            </div>
-          </aside>
+              ))}
+          </dl>
+        )}
+      </header>
 
-          {/* ── Report Content ─────────────────────────────────────── */}
-          <div ref={contentRef} className="min-w-0 flex-1 space-y-1 pb-20">
-            {sections.map((section) => {
-              const isCollapsed = collapsedSections.has(section.id);
-              const isSearchMatch = searchQuery.length >= 2 && highlightedSections.has(section.id);
-
-              if (section.type === "hero") {
-                return (
+      {/* 2-column layout */}
+      <div className="mt-14 gap-14 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
+        <article ref={articleRef} className="min-w-0 print:space-y-16">
+          {parsed.sections.map((section, sectionIdx) => (
+            <section
+              key={section.id}
+              id={section.id}
+              className={cn(
+                "scroll-mt-24",
+                sectionIdx > 0 && "mt-24 pt-12 border-t border-slate-800/60"
+              )}
+            >
+              {/* Section heading with outsized numeral */}
+              <header className="mb-8 grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-6">
+                {section.number !== undefined && (
                   <div
-                    key={section.id}
-                    data-section-id={section.id}
-                    className="mb-8 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/30 p-8"
+                    className="font-mono text-5xl leading-none text-slate-700 sm:text-6xl lg:text-7xl"
+                    aria-hidden
                   >
-                    <h2 className="text-2xl font-bold text-white">{section.title}</h2>
-                    <div
-                      className="report-content mt-4 text-sm leading-relaxed text-slate-400"
-                      dangerouslySetInnerHTML={{ __html: section.content }}
-                    />
+                    {String(section.number).padStart(2, "0")}
                   </div>
-                );
-              }
-
-              if (section.type === "major") {
-                return (
-                  <div
-                    key={section.id}
-                    data-section-id={section.id}
-                    className={cn(
-                      "rounded-xl border bg-slate-900 transition-colors",
-                      isSearchMatch ? "border-amber-500/40 ring-1 ring-amber-500/20" : "border-slate-800"
-                    )}
+                )}
+                <div className={cn(section.number === undefined && "col-span-2")}>
+                  <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                    {section.number !== undefined
+                      ? `Part ${section.number}`
+                      : "Section"}
+                  </div>
+                  <h2
+                    className="text-balance text-3xl leading-[1.1] text-white lg:text-[40px]"
+                    style={{
+                      fontFamily: "var(--font-instrument-serif)",
+                    }}
                   >
-                    {/* Collapsible header */}
-                    <div
-                      onClick={() => toggleSection(section.id)}
-                      className="flex w-full cursor-pointer items-center justify-between px-6 py-5 text-left group"
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleSection(section.id); }}
-                    >
-                      <div className="flex items-center gap-3">
-                        {section.sectionNumber && (
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-sm font-bold text-blue-400">
-                            {section.sectionNumber}
-                          </span>
-                        )}
-                        <h2 className="text-lg font-bold text-white">
-                          {section.title.replace(/^\s*\d+\.\s*/, "")}
-                        </h2>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); copyLink(section.id); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-800"
-                          title="Copy link to section"
-                        >
-                          <Link2 className="h-3.5 w-3.5 text-slate-500" />
-                        </button>
-                        <ChevronDown className={cn(
-                          "h-5 w-5 text-slate-600 transition-transform",
-                          isCollapsed && "-rotate-90"
-                        )} />
-                      </div>
-                    </div>
-                    {!isCollapsed && (
-                      <div className="border-t border-slate-800/50 px-6 pb-6 pt-4">
-                        <div
-                          className="report-content text-sm leading-[1.8] text-slate-300"
-                          dangerouslySetInnerHTML={{ __html: section.content }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+                    {section.title}
+                  </h2>
+                </div>
+              </header>
 
-              if (section.type === "checkin") {
-                return (
-                  <div
-                    key={section.id}
-                    data-section-id={section.id}
-                    className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 px-6 py-4"
-                  >
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-emerald-400">
-                      <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-500/20 text-[10px]">✓</span>
-                      {section.title}
-                    </h3>
-                    <div
-                      className="report-content mt-3 text-sm leading-[1.7] text-slate-400"
-                      dangerouslySetInnerHTML={{ __html: section.content }}
-                    />
-                  </div>
-                );
-              }
+              {/* Section intro content */}
+              {section.intro.length > 0 && (
+                <div className="max-w-[68ch]">
+                  <BlockGroup blocks={section.intro} />
+                </div>
+              )}
 
-              // Subsection
-              return (
-                <div
-                  key={section.id}
-                  data-section-id={section.id}
-                  className={cn(
-                    "rounded-xl border bg-slate-900/50 px-6 py-5 transition-colors",
-                    isSearchMatch ? "border-amber-500/40 ring-1 ring-amber-500/20" : "border-slate-800/50"
-                  )}
-                >
-                  <h3 className="group flex items-center gap-2 text-base font-semibold text-slate-200">
-                    {section.sectionNumber && (
-                      <span className="text-xs font-mono text-slate-600">{section.sectionNumber}</span>
-                    )}
-                    {section.title.replace(/^\d+\.\d+\s*/, "")}
-                    <button
-                      onClick={() => copyLink(section.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-800"
-                      title="Copy link"
-                    >
-                      <Link2 className="h-3 w-3 text-slate-600" />
-                    </button>
-                  </h3>
-                  <div
-                    className="report-content mt-3 text-sm leading-[1.8] text-slate-400"
-                    dangerouslySetInnerHTML={{ __html: section.content }}
+              {/* Section-level figures (attached to the major section heading) */}
+              {section.introFigures.map((fig) => (
+                <div key={fig.src} className="max-w-[78ch]">
+                  <FigureBlock
+                    figure={fig}
+                    number={
+                      figureNumbers.get(fig.src + "@" + section.id) ?? 0
+                    }
                   />
                 </div>
-              );
-            })}
+              ))}
 
-            {/* ── Visualization Gallery ─────────────────────────────── */}
-            <div id="viz-gallery" className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-              <h2 className="mb-4 text-lg font-bold text-white">Visualizations</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {[
-                  { file: "eda_distributions.png", title: "EDA: WACMR & Repo Rate Distributions" },
-                  { file: "target_timeseries.png", title: "WACMR Weekly Time Series" },
-                  { file: "silhouette_scores.png", title: "K-Means Silhouette Scores" },
-                  { file: "pca_regime_scatter.png", title: "PCA Regime Scatter (K=2)" },
-                  { file: "regime_timeseries.png", title: "Regime-Shaded Rate Timeline" },
-                  { file: "shap_summary.png", title: "SHAP Feature Importance (Top 15)" },
-                  { file: "actual_vs_predicted.png", title: "Actual vs Predicted WACMR" },
-                  { file: "shap_by_regime.png", title: "Regime-Specific SHAP Analysis" },
-                  { file: "residual_calendar.png", title: "Residual & Calendar Effects" },
-                  { file: "regime_wacmr_boxplot.png", title: "WACMR Distribution by Regime" },
-                  { file: "news_sentiment_timeline.png", title: "News Sentiment vs WACMR" },
-                  { file: "event_density_heatmap.png", title: "Event Density Heatmap" },
-                ].map((img) => (
-                  <figure key={img.file} className="group overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
-                    <div className="bg-slate-900 px-3 py-2">
-                      <figcaption className="text-xs font-medium text-slate-400">{img.title}</figcaption>
+              {/* Subsections */}
+              {section.subsections.map((sub, subIdx) => (
+                <section
+                  key={sub.id}
+                  id={sub.id}
+                  className={cn(
+                    "scroll-mt-24 pt-10",
+                    subIdx === 0 ? "mt-2" : "mt-4"
+                  )}
+                >
+                  <header className="mb-5 flex items-baseline gap-3">
+                    {sub.number && (
+                      <span className="font-mono text-[11px] tracking-wider text-slate-500">
+                        §{sub.number}
+                      </span>
+                    )}
+                    <h3 className="text-[22px] font-semibold tracking-tight text-white">
+                      {sub.title}
+                    </h3>
+                  </header>
+                  <div className="max-w-[68ch]">
+                    <BlockGroup blocks={sub.blocks} />
+                  </div>
+                  {sub.figures.map((fig) => (
+                    <div key={fig.src} className="max-w-[78ch]">
+                      <FigureBlock
+                        figure={fig}
+                        number={
+                          figureNumbers.get(fig.src + "@" + sub.id) ?? 0
+                        }
+                      />
                     </div>
-                    <img
-                      src={`/visualizations/${img.file}`}
-                      alt={img.title}
-                      className="w-full transition-transform duration-300 group-hover:scale-[1.02]"
-                      loading="lazy"
-                    />
-                  </figure>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  ))}
+                </section>
+              ))}
+            </section>
+          ))}
+          <footer className="mt-24 border-t border-slate-800 pt-8 text-xs text-slate-500">
+            End of report. Generated by <code>stage5_synthesis.py</code>.
+            {totalFigures > 0 && (
+              <>
+                {" "}· {totalFigures} figures embedded from the pipeline
+                artefacts.
+              </>
+            )}
+          </footer>
+        </article>
 
-      {/* Back to Top FAB */}
+        <aside className="hidden lg:sticky lg:top-8 lg:block lg:max-h-[calc(100vh-6rem)] lg:self-start lg:overflow-y-auto print:hidden">
+          <TableOfContents sections={parsed.sections} activeId={activeId} />
+        </aside>
+      </div>
+
+      {/* Back-to-top */}
       {showBackToTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-500 print:hidden"
+          className="fixed bottom-24 right-6 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-200 shadow-lg backdrop-blur hover:border-slate-600 print:hidden"
+          aria-label="Back to top"
         >
           <ArrowUp className="h-4 w-4" />
         </button>
       )}
-
-      {/* ── Inline Styles for Report Content ────────────────────────── */}
-      <style jsx global>{`
-        .report-content p {
-          margin-bottom: 0.5rem;
-        }
-        .report-content li {
-          margin-left: 1.5rem;
-          list-style-type: disc;
-          margin-bottom: 0.25rem;
-          color: #cbd5e1;
-        }
-        .report-table {
-          overflow-x: auto;
-          margin: 1rem 0;
-          border-radius: 0.5rem;
-          border: 1px solid #1e293b;
-          background: #0f172a;
-        }
-        .report-table pre {
-          padding: 1rem;
-          font-size: 0.7rem;
-          line-height: 1.5;
-          color: #94a3b8;
-          white-space: pre;
-          font-family: ui-monospace, monospace;
-        }
-        .callout {
-          border-left: 3px solid;
-          padding: 0.75rem 1rem;
-          margin: 0.75rem 0;
-          border-radius: 0 0.5rem 0.5rem 0;
-          font-size: 0.8125rem;
-          line-height: 1.6;
-        }
-        .callout-finding {
-          border-color: #3b82f6;
-          background: rgba(59, 130, 246, 0.08);
-          color: #93c5fd;
-        }
-        .callout-result {
-          border-color: #a855f7;
-          background: rgba(168, 85, 247, 0.08);
-          color: #c4b5fd;
-        }
-        .callout-hypothesis {
-          border-color: #f59e0b;
-          background: rgba(245, 158, 11, 0.08);
-          color: #fcd34d;
-        }
-        .star-line .star {
-          color: #fbbf24;
-          font-size: 1em;
-        }
-        .star-line {
-          background: rgba(251, 191, 36, 0.05);
-          border-radius: 0.25rem;
-          padding: 0.25rem 0.5rem;
-        }
-        .metric-line {
-          font-family: ui-monospace, monospace;
-          font-size: 0.75rem;
-          color: #94a3b8;
-          padding: 0.125rem 0;
-        }
-        .scrollbar-thin::-webkit-scrollbar {
-          width: 4px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: #334155;
-          border-radius: 2px;
-        }
-        @media print {
-          .report-content { color: #1e293b !important; }
-          .callout { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-        }
-      `}</style>
     </div>
   );
 }

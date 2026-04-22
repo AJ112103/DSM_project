@@ -50,7 +50,8 @@ aws apprunner create-service \
       "ImageConfiguration": {
         "Port": "8000",
         "RuntimeEnvironmentVariables": {
-          "GROQ_API_KEY": "<your-groq-api-key>"
+          "GEMINI_API_KEY": "<your-gemini-api-key>",
+          "GEMINI_MODEL": "gemini-2.5-flash"
         }
       }
     },
@@ -104,5 +105,5 @@ npx vercel --prod
 
 | Variable | Where | Value |
 |---|---|---|
-| `GROQ_API_KEY` | Backend (App Runner / EC2) | Your Groq API key for LLM agent |
+| `GEMINI_API_KEY` | Backend (App Runner / EC2) | Your Gemini API key for the LLM agent |
 | `NEXT_PUBLIC_API_URL` | Frontend (Vercel) | Backend API URL |

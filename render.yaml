@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: wacmr-api
+    env: python
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: PYTHONPATH
+        value: .
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: CORS_ORIGINS
+        # Comma-separated list of allowed frontend origins. Include the Vercel
+        # production URL, any preview URLs you want to allow, and localhost for
+        # debugging. Update this after the first Vercel deploy.
+        value: "https://*.vercel.app,http://localhost:3000"
