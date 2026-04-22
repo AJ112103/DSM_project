@@ -383,9 +383,8 @@ function parseReport(raw: string): ParsedReport {
       const m = trimmed.match(MAJOR_NUM);
       if (m) startNewSection(smartTitleCase(m[2].trim()), m[1]);
       else startNewSection(smartTitleCase(trimmed));
-      if (currentSection && m) {
-        currentSection.introFigures = figuresForSection(m[1]);
-      }
+      const sec = out.sections[out.sections.length - 1];
+      if (sec && m) sec.introFigures = figuresForSection(m[1]);
       i++; continue;
     }
     if (prevSep && !nextSep && trimmed.length > 0 && /^\d+\.\s/.test(trimmed)) {
@@ -393,14 +392,13 @@ function parseReport(raw: string): ParsedReport {
       const m = trimmed.match(MAJOR_NUM);
       if (m) startNewSection(smartTitleCase(m[2].trim()), m[1]);
       else startNewSection(smartTitleCase(trimmed));
+      const sec = out.sections[out.sections.length - 1];
       let j = i + 1;
       while (j < lines.length && /^\s+\S/.test(lines[j]) && lines[j].trim().length) {
-        currentSection!.title += " " + smartTitleCase(lines[j].trim());
+        if (sec) sec.title += " " + smartTitleCase(lines[j].trim());
         j++;
       }
-      if (currentSection && m) {
-        currentSection.introFigures = figuresForSection(m[1]);
-      }
+      if (sec && m) sec.introFigures = figuresForSection(m[1]);
       i = j; continue;
     }
 
