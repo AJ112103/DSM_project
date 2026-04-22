@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Gauge,
@@ -50,12 +50,22 @@ type AttributionResponse = {
 
 const DELTA_PRESETS = [-100, -50, -25, 0, 25, 50, 100];
 
+// 200ms debounce: the slider thumb (bound to `bps`) updates instantly so the
+// UI feels responsive, but `queryBps` only catches up after the user pauses.
+// useDeferredValue alone doesn't help here — every value change still produces
+// a new React Query key, so we need an actual timer-based gate.
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function SimulatePage() {
   const [bps, setBps] = useState<number>(-25);
-  // useDeferredValue lets the slider thumb (bound to `bps`) move smoothly
-  // while the network-fetching reads use the deferred value, so dragging
-  // from -200 to +200 does not fire 81 backend calls.
-  const queryBps = useDeferredValue(bps);
+  const queryBps = useDebounced(bps, 200);
 
   const { data: sweep, isLoading: loadingSweep, error: sweepError } = useQuery<SweepResponse>({
     queryKey: ["simulate-sweep"],
