@@ -188,7 +188,7 @@ export default function SimulatePage() {
         : "barely move";
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8" data-slider-version="v2-debounce-200ms">
       <header className="space-y-3">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-cyan-400">
           <Gauge className="h-3.5 w-3.5" />
