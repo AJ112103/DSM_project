@@ -21,12 +21,51 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ..agent.tools import _tool_run_counterfactual, ToolError
+from ..agent.tools import _tool_run_counterfactual, ToolError, _get_booster, _get_feature_names
 from ..database import get_dataframe
 from ..config import SAVED_MODEL_DIR
 from ..column_registry import COLUMN_REGISTRY
 
 router = APIRouter(prefix="/api/simulate", tags=["simulate"])
+
+# Module-level singletons. shap.TreeExplainer build is the expensive part of
+# /attribution; reusing one instance per process turns subsequent calls from
+# a multi-second xgboost+shap reload into a fast tree walk.
+_EXPLAINER = None
+_SLIDER_CACHE: dict[str, Any] | None = None
+_SWEEP_CACHE: dict[str, Any] | None = None
+
+
+def _get_explainer():
+    global _EXPLAINER
+    if _EXPLAINER is None:
+        import shap
+        _EXPLAINER = shap.TreeExplainer(_get_booster())
+    return _EXPLAINER
+
+
+def _slider_lookup(bps: float, base_week: str | None) -> dict[str, Any] | None:
+    """Return precomputed counterfactual for the default base week, or None."""
+    if base_week is not None:
+        return None
+    global _SLIDER_CACHE
+    if _SLIDER_CACHE is None:
+        path = SAVED_MODEL_DIR / "simulate_slider.json"
+        _SLIDER_CACHE = json.loads(path.read_text()) if path.exists() else {"points": {}}
+    # Slider step is 5 bps; precomputed keys are integers as strings.
+    key = str(int(round(float(bps))))
+    return _SLIDER_CACHE.get("points", {}).get(key)
+
+
+def _sweep_lookup(min_bps: float, max_bps: float, step_bps: float, base_week: str | None) -> dict[str, Any] | None:
+    """Return the precomputed default sweep, or None for non-default ranges."""
+    if base_week is not None or min_bps != -200.0 or max_bps != 200.0 or step_bps != 25.0:
+        return None
+    global _SWEEP_CACHE
+    if _SWEEP_CACHE is None:
+        path = SAVED_MODEL_DIR / "simulate_sweep_default.json"
+        _SWEEP_CACHE = json.loads(path.read_text()) if path.exists() else None
+    return _SWEEP_CACHE
 
 
 class CounterfactualRequest(BaseModel):
@@ -44,6 +83,9 @@ class SweepRequest(BaseModel):
 @router.post("/counterfactual")
 def counterfactual(req: CounterfactualRequest) -> dict[str, Any]:
     """Single-point counterfactual for a given delta."""
+    cached = _slider_lookup(req.repo_rate_delta_bps, req.base_week)
+    if cached is not None:
+        return cached
     try:
         result = _tool_run_counterfactual(
             repo_rate_delta_bps=req.repo_rate_delta_bps,
@@ -59,6 +101,10 @@ def sweep(req: SweepRequest) -> dict[str, Any]:
     """Sweep deltas across a range to render a policy-response curve."""
     if req.max_bps <= req.min_bps:
         raise HTTPException(status_code=400, detail="max_bps must exceed min_bps")
+
+    cached = _sweep_lookup(req.min_bps, req.max_bps, req.step_bps, req.base_week)
+    if cached is not None:
+        return cached
 
     points = []
     delta = req.min_bps
@@ -84,6 +130,9 @@ def sweep(req: SweepRequest) -> dict[str, Any]:
     }
 
 
+_ATTRIBUTION_CACHE: dict[tuple[float, str | None], dict[str, Any]] = {}
+
+
 @router.get("/attribution")
 def attribution(repo_rate_delta_bps: float, base_week: str | None = None) -> dict[str, Any]:
     """Return per-feature SHAP attribution for the counterfactual vs baseline.
@@ -92,19 +141,14 @@ def attribution(repo_rate_delta_bps: float, base_week: str | None = None) -> dic
     build the perturbed vector (repo + lags + spreads), compute SHAP for each,
     and return the difference — that's what drove the change.
     """
+    cache_key = (float(repo_rate_delta_bps), base_week)
+    if cache_key in _ATTRIBUTION_CACHE:
+        return _ATTRIBUTION_CACHE[cache_key]
+
     try:
-        import xgboost as xgb
-        import shap
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=f"ml packages missing: {e}") from e
-
-    features_path = SAVED_MODEL_DIR / "feature_names.json"
-    model_path = SAVED_MODEL_DIR / "xgb_model.json"
-    if not features_path.exists() or not model_path.exists():
-        raise HTTPException(status_code=500, detail="Model artifacts missing. Run train_and_save.py first.")
-
-    with open(features_path) as f:
-        feature_names: list[str] = json.load(f)
+        feature_names = _get_feature_names()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=f"Model artifacts missing: {e}") from e
 
     df = get_dataframe()
     dates = pd.to_datetime(df["week_date"]).dt.strftime("%Y-%m-%d").tolist()
@@ -130,9 +174,11 @@ def attribution(repo_rate_delta_bps: float, base_week: str | None = None) -> dic
         if col in X_cf.columns:
             X_cf[col] = X_cf[col] - delta
 
-    booster = xgb.XGBRegressor()
-    booster.load_model(str(model_path))
-    explainer = shap.TreeExplainer(booster)
+    try:
+        explainer = _get_explainer()
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"ml packages missing: {e}") from e
+
     shap_base = explainer.shap_values(X_base.values.astype(np.float32))[0]
     shap_cf = explainer.shap_values(X_cf.values.astype(np.float32))[0]
     shap_delta = shap_cf - shap_base
@@ -154,8 +200,10 @@ def attribution(repo_rate_delta_bps: float, base_week: str | None = None) -> dic
             "shap_delta": round(signed, 5),
         })
 
-    return {
+    result = {
         "base_week": dates[idx],
         "repo_rate_delta_bps": repo_rate_delta_bps,
         "attributions": attributions,
     }
+    _ATTRIBUTION_CACHE[cache_key] = result
+    return result

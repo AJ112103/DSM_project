@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Gauge,
@@ -11,7 +11,7 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
-import { postAPI } from "@/lib/api";
+import { apiBase, postAPI } from "@/lib/api";
 import { PLOTLY_DARK_LAYOUT, PLOTLY_CONFIG, CHART_COLORS } from "@/lib/plotly-theme";
 import { cn } from "@/lib/utils";
 
@@ -52,28 +52,32 @@ const DELTA_PRESETS = [-100, -50, -25, 0, 25, 50, 100];
 
 export default function SimulatePage() {
   const [bps, setBps] = useState<number>(-25);
+  // useDeferredValue lets the slider thumb (bound to `bps`) move smoothly
+  // while the network-fetching reads use the deferred value, so dragging
+  // from -200 to +200 does not fire 81 backend calls.
+  const queryBps = useDeferredValue(bps);
 
   const { data: sweep, isLoading: loadingSweep, error: sweepError } = useQuery<SweepResponse>({
     queryKey: ["simulate-sweep"],
     queryFn: () =>
       postAPI("/api/simulate/sweep", { min_bps: -200, max_bps: 200, step_bps: 25 }),
-    staleTime: 60 * 60 * 1000,
+    staleTime: Infinity,
   });
 
   const { data: point, isLoading: loadingPoint } = useQuery<CounterfactualResponse>({
-    queryKey: ["simulate-cf", bps],
-    queryFn: () => postAPI("/api/simulate/counterfactual", { repo_rate_delta_bps: bps }),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ["simulate-cf", queryBps],
+    queryFn: () => postAPI("/api/simulate/counterfactual", { repo_rate_delta_bps: queryBps }),
+    staleTime: Infinity,
   });
 
   const { data: attribution } = useQuery<AttributionResponse>({
-    queryKey: ["simulate-attribution", bps],
+    queryKey: ["simulate-attribution", queryBps],
     queryFn: () =>
       fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/simulate/attribution?repo_rate_delta_bps=${bps}`
+        `${apiBase}/api/simulate/attribution?repo_rate_delta_bps=${queryBps}`
       ).then((r) => r.json()),
-    staleTime: 5 * 60 * 1000,
-    enabled: bps !== 0,
+    staleTime: Infinity,
+    enabled: queryBps !== 0,
   });
 
   const curveData = useMemo(() => {
@@ -307,8 +311,11 @@ export default function SimulatePage() {
           </div>
         )}
         {loadingSweep && !curveData && (
-          <div className="flex h-[360px] items-center justify-center text-sm text-slate-500">
-            Sweeping –200 to +200 bps…
+          <div className="relative h-[360px] overflow-hidden rounded-md border border-slate-800/50 bg-slate-900/30">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-800/40 via-slate-900/20 to-slate-800/40" />
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+              Sweeping –200 to +200 bps…
+            </div>
           </div>
         )}
         {curveData && (

@@ -77,8 +77,20 @@ function HeroChart() {
 
   if (!dates.length) {
     return (
-      <div className="flex h-[280px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40 text-xs text-slate-600">
-        Waiting for backend…
+      <div className="relative h-[280px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40">
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-800/30 via-slate-900/10 to-slate-800/30" />
+        <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 400 280" preserveAspectRatio="none">
+          <path
+            d="M0,180 C40,160 80,200 120,170 C160,140 200,150 240,130 C280,110 320,140 360,120 L400,110 L400,280 L0,280 Z"
+            fill="rgba(6, 182, 212, 0.06)"
+          />
+          <path
+            d="M0,180 C40,160 80,200 120,170 C160,140 200,150 240,130 C280,110 320,140 360,120 L400,110"
+            stroke="rgba(6, 182, 212, 0.25)"
+            strokeWidth="1.5"
+            fill="none"
+          />
+        </svg>
       </div>
     );
   }

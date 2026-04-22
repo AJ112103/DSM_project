@@ -1,4 +1,13 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// Resolve the backend base URL. Browser hits the Render backend directly
+// (the old /api/* Vercel rewrite was removed because it added ~500ms of
+// proxy overhead). NEXT_PUBLIC_API_URL is the env-driven override; the
+// production fallback exists so the deploy keeps working even if the env
+// var hasn't been set yet in Vercel project settings.
+const PROD_FALLBACK = "https://wacmr-api.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
+  || (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? PROD_FALLBACK
+    : "");
 
 export async function fetchAPI(path: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, options);
@@ -26,3 +35,7 @@ export function streamAPI(path: string, body: unknown) {
     body: JSON.stringify(body),
   });
 }
+
+// Exported so call sites that build URLs by hand (e.g. simulate attribution)
+// pick up the same resolution rules.
+export const apiBase = API_BASE;

@@ -1,0 +1,979 @@
+{
+  "base_week": "2024-07-19",
+  "base_prediction": 6.5749,
+  "step_bps": 5,
+  "points": {
+    "-200": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -200.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7359,
+      "delta_pp": -0.839,
+      "confidence_interval_90": [
+        5.5572,
+        5.8536
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-195": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -195.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7359,
+      "delta_pp": -0.839,
+      "confidence_interval_90": [
+        5.5572,
+        5.8536
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-190": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -190.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7423,
+      "delta_pp": -0.8325,
+      "confidence_interval_90": [
+        5.5637,
+        5.8601
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-185": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -185.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7468,
+      "delta_pp": -0.828,
+      "confidence_interval_90": [
+        5.5682,
+        5.8646
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-180": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -180.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7494,
+      "delta_pp": -0.8255,
+      "confidence_interval_90": [
+        5.5708,
+        5.8672
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-175": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -175.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7494,
+      "delta_pp": -0.8255,
+      "confidence_interval_90": [
+        5.5708,
+        5.8672
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-170": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -170.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7494,
+      "delta_pp": -0.8255,
+      "confidence_interval_90": [
+        5.5708,
+        5.8672
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-165": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -165.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.7494,
+      "delta_pp": -0.8255,
+      "confidence_interval_90": [
+        5.5708,
+        5.8672
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-160": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -160.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8776,
+      "delta_pp": -0.6973,
+      "confidence_interval_90": [
+        5.6989,
+        5.9953
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-155": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -155.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8776,
+      "delta_pp": -0.6973,
+      "confidence_interval_90": [
+        5.6989,
+        5.9953
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-150": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -150.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8776,
+      "delta_pp": -0.6973,
+      "confidence_interval_90": [
+        5.6989,
+        5.9953
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-145": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -145.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8776,
+      "delta_pp": -0.6973,
+      "confidence_interval_90": [
+        5.6989,
+        5.9953
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-140": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -140.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8776,
+      "delta_pp": -0.6973,
+      "confidence_interval_90": [
+        5.6989,
+        5.9953
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-135": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -135.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8892,
+      "delta_pp": -0.6857,
+      "confidence_interval_90": [
+        5.7105,
+        6.0069
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-130": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -130.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8867,
+      "delta_pp": -0.6882,
+      "confidence_interval_90": [
+        5.7081,
+        6.0045
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-125": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -125.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8864,
+      "delta_pp": -0.6884,
+      "confidence_interval_90": [
+        5.7078,
+        6.0042
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-120": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -120.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8861,
+      "delta_pp": -0.6887,
+      "confidence_interval_90": [
+        5.7075,
+        6.0039
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-115": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -115.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 5.8862,
+      "delta_pp": -0.6887,
+      "confidence_interval_90": [
+        5.7075,
+        6.0039
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-110": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -110.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-105": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -105.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-100": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -100.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-95": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -95.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-90": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -90.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-85": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -85.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-80": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -80.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.2969,
+      "delta_pp": -0.278,
+      "confidence_interval_90": [
+        6.1182,
+        6.4146
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-75": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -75.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4389,
+      "delta_pp": -0.136,
+      "confidence_interval_90": [
+        6.2603,
+        6.5567
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-70": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -70.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4393,
+      "delta_pp": -0.1356,
+      "confidence_interval_90": [
+        6.2606,
+        6.557
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-65": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -65.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4382,
+      "delta_pp": -0.1367,
+      "confidence_interval_90": [
+        6.2595,
+        6.5559
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-60": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -60.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5397,
+      "delta_pp": -0.0351,
+      "confidence_interval_90": [
+        6.3611,
+        6.6575
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-55": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -55.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5371,
+      "delta_pp": -0.0378,
+      "confidence_interval_90": [
+        6.3584,
+        6.6548
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-50": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -50.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.533,
+      "delta_pp": -0.0418,
+      "confidence_interval_90": [
+        6.3544,
+        6.6508
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-45": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -45.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5272,
+      "delta_pp": -0.0477,
+      "confidence_interval_90": [
+        6.3485,
+        6.6449
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-40": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -40.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5229,
+      "delta_pp": -0.0519,
+      "confidence_interval_90": [
+        6.3443,
+        6.6407
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-35": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -35.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.52,
+      "delta_pp": -0.0548,
+      "confidence_interval_90": [
+        6.3414,
+        6.6378
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-30": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -30.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5122,
+      "delta_pp": -0.0627,
+      "confidence_interval_90": [
+        6.3335,
+        6.6299
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-25": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -25.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5406,
+      "delta_pp": -0.0343,
+      "confidence_interval_90": [
+        6.3619,
+        6.6583
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-20": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -20.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5218,
+      "delta_pp": -0.0531,
+      "confidence_interval_90": [
+        6.3431,
+        6.6395
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-15": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -15.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.501,
+      "delta_pp": -0.0738,
+      "confidence_interval_90": [
+        6.3224,
+        6.6188
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-10": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -10.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4661,
+      "delta_pp": -0.1088,
+      "confidence_interval_90": [
+        6.2874,
+        6.5838
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "-5": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": -5.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4411,
+      "delta_pp": -0.1338,
+      "confidence_interval_90": [
+        6.2624,
+        6.5588
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "0": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 0.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5749,
+      "delta_pp": 0.0,
+      "confidence_interval_90": [
+        6.3962,
+        6.6926
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "5": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 5.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5481,
+      "delta_pp": -0.0268,
+      "confidence_interval_90": [
+        6.3694,
+        6.6658
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "10": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 10.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.5071,
+      "delta_pp": -0.0677,
+      "confidence_interval_90": [
+        6.3285,
+        6.6249
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "15": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 15.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4744,
+      "delta_pp": -0.1005,
+      "confidence_interval_90": [
+        6.2958,
+        6.5921
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "20": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 20.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4469,
+      "delta_pp": -0.1279,
+      "confidence_interval_90": [
+        6.2683,
+        6.5647
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "25": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 25.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4276,
+      "delta_pp": -0.1472,
+      "confidence_interval_90": [
+        6.249,
+        6.5454
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "30": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 30.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4195,
+      "delta_pp": -0.1554,
+      "confidence_interval_90": [
+        6.2408,
+        6.5372
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "35": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 35.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4131,
+      "delta_pp": -0.1618,
+      "confidence_interval_90": [
+        6.2344,
+        6.5308
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "40": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 40.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4107,
+      "delta_pp": -0.1641,
+      "confidence_interval_90": [
+        6.2321,
+        6.5285
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "45": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 45.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.41,
+      "delta_pp": -0.1648,
+      "confidence_interval_90": [
+        6.2314,
+        6.5278
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "50": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 50.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4098,
+      "delta_pp": -0.1651,
+      "confidence_interval_90": [
+        6.2311,
+        6.5275
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "55": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 55.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4097,
+      "delta_pp": -0.1652,
+      "confidence_interval_90": [
+        6.231,
+        6.5274
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "60": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 60.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4096,
+      "delta_pp": -0.1653,
+      "confidence_interval_90": [
+        6.231,
+        6.5274
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "65": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 65.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4095,
+      "delta_pp": -0.1653,
+      "confidence_interval_90": [
+        6.2309,
+        6.5273
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "70": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 70.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.4094,
+      "delta_pp": -0.1655,
+      "confidence_interval_90": [
+        6.2308,
+        6.5272
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "75": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 75.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.624,
+      "delta_pp": 0.0491,
+      "confidence_interval_90": [
+        6.4454,
+        6.7417
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "80": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 80.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.6239,
+      "delta_pp": 0.049,
+      "confidence_interval_90": [
+        6.4452,
+        6.7416
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "85": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 85.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.6213,
+      "delta_pp": 0.0465,
+      "confidence_interval_90": [
+        6.4427,
+        6.7391
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "90": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 90.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.62,
+      "delta_pp": 0.0451,
+      "confidence_interval_90": [
+        6.4413,
+        6.7377
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "95": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 95.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.618,
+      "delta_pp": 0.0431,
+      "confidence_interval_90": [
+        6.4393,
+        6.7357
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "100": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 100.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.7851,
+      "delta_pp": 0.2102,
+      "confidence_interval_90": [
+        6.6064,
+        6.9028
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "105": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 105.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.7836,
+      "delta_pp": 0.2088,
+      "confidence_interval_90": [
+        6.605,
+        6.9014
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "110": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 110.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.7829,
+      "delta_pp": 0.208,
+      "confidence_interval_90": [
+        6.6042,
+        6.9006
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "115": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 115.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.7829,
+      "delta_pp": 0.208,
+      "confidence_interval_90": [
+        6.6042,
+        6.9006
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "120": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 120.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.7829,
+      "delta_pp": 0.208,
+      "confidence_interval_90": [
+        6.6042,
+        6.9006
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "125": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 125.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8634,
+      "delta_pp": 0.2885,
+      "confidence_interval_90": [
+        6.6847,
+        6.9811
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "130": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 130.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8634,
+      "delta_pp": 0.2885,
+      "confidence_interval_90": [
+        6.6847,
+        6.9811
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "135": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 135.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8634,
+      "delta_pp": 0.2885,
+      "confidence_interval_90": [
+        6.6847,
+        6.9811
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "140": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 140.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8634,
+      "delta_pp": 0.2885,
+      "confidence_interval_90": [
+        6.6847,
+        6.9811
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "145": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 145.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8634,
+      "delta_pp": 0.2885,
+      "confidence_interval_90": [
+        6.6847,
+        6.9811
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "150": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 150.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "155": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 155.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "160": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 160.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "165": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 165.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "170": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 170.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "175": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 175.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "180": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 180.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "185": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 185.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "190": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 190.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "195": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 195.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    },
+    "200": {
+      "base_week": "2024-07-19",
+      "repo_rate_delta_bps": 200.0,
+      "base_prediction": 6.5749,
+      "counterfactual_prediction": 6.8852,
+      "delta_pp": 0.3103,
+      "confidence_interval_90": [
+        6.7065,
+        7.0029
+      ],
+      "interpretation_hint": "The counterfactual perturbs the Repo Rate and its direct lags/spreads, then re-runs the trained XGBoost model. The CI reflects walk-forward residual spread, not causal uncertainty."
+    }
+  }
+}

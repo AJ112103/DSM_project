@@ -2,8 +2,9 @@
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .routers import data, analytics, forecast, news, agent, simulate
@@ -46,6 +47,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# gzip compresses bigger JSON payloads (PCA ~100KB, SHAP ~130KB) by ~5x.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+
+# The dataset is a frozen weekly snapshot — every read endpoint can safely be
+# cached by the browser and any intermediate CDN. Agent/health endpoints are
+# dynamic so they opt out.
+_NO_CACHE_PREFIXES = ("/api/agent/", "/api/health")
+
+
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    if request.method != "GET":
+        return response
+    path = request.url.path
+    if not path.startswith("/api/"):
+        return response
+    if any(path.startswith(p) for p in _NO_CACHE_PREFIXES):
+        response.headers["Cache-Control"] = "no-store"
+    else:
+        response.headers["Cache-Control"] = (
+            "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+        )
+    return response
+
 
 # Routers
 app.include_router(data.router)

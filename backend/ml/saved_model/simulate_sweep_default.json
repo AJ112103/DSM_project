@@ -1,0 +1,125 @@
+{
+  "base_week": "2024-07-19",
+  "base_prediction": 6.5749,
+  "points": [
+    {
+      "bps": -200.0,
+      "predicted": 5.7359,
+      "delta_pp": -0.839,
+      "ci_lo": 5.5572,
+      "ci_hi": 5.8536
+    },
+    {
+      "bps": -175.0,
+      "predicted": 5.7494,
+      "delta_pp": -0.8255,
+      "ci_lo": 5.5708,
+      "ci_hi": 5.8672
+    },
+    {
+      "bps": -150.0,
+      "predicted": 5.8776,
+      "delta_pp": -0.6973,
+      "ci_lo": 5.6989,
+      "ci_hi": 5.9953
+    },
+    {
+      "bps": -125.0,
+      "predicted": 5.8864,
+      "delta_pp": -0.6884,
+      "ci_lo": 5.7078,
+      "ci_hi": 6.0042
+    },
+    {
+      "bps": -100.0,
+      "predicted": 6.2969,
+      "delta_pp": -0.278,
+      "ci_lo": 6.1182,
+      "ci_hi": 6.4146
+    },
+    {
+      "bps": -75.0,
+      "predicted": 6.4389,
+      "delta_pp": -0.136,
+      "ci_lo": 6.2603,
+      "ci_hi": 6.5567
+    },
+    {
+      "bps": -50.0,
+      "predicted": 6.533,
+      "delta_pp": -0.0418,
+      "ci_lo": 6.3544,
+      "ci_hi": 6.6508
+    },
+    {
+      "bps": -25.0,
+      "predicted": 6.5406,
+      "delta_pp": -0.0343,
+      "ci_lo": 6.3619,
+      "ci_hi": 6.6583
+    },
+    {
+      "bps": 0.0,
+      "predicted": 6.5749,
+      "delta_pp": 0.0,
+      "ci_lo": 6.3962,
+      "ci_hi": 6.6926
+    },
+    {
+      "bps": 25.0,
+      "predicted": 6.4276,
+      "delta_pp": -0.1472,
+      "ci_lo": 6.249,
+      "ci_hi": 6.5454
+    },
+    {
+      "bps": 50.0,
+      "predicted": 6.4098,
+      "delta_pp": -0.1651,
+      "ci_lo": 6.2311,
+      "ci_hi": 6.5275
+    },
+    {
+      "bps": 75.0,
+      "predicted": 6.624,
+      "delta_pp": 0.0491,
+      "ci_lo": 6.4454,
+      "ci_hi": 6.7417
+    },
+    {
+      "bps": 100.0,
+      "predicted": 6.7851,
+      "delta_pp": 0.2102,
+      "ci_lo": 6.6064,
+      "ci_hi": 6.9028
+    },
+    {
+      "bps": 125.0,
+      "predicted": 6.8634,
+      "delta_pp": 0.2885,
+      "ci_lo": 6.6847,
+      "ci_hi": 6.9811
+    },
+    {
+      "bps": 150.0,
+      "predicted": 6.8852,
+      "delta_pp": 0.3103,
+      "ci_lo": 6.7065,
+      "ci_hi": 7.0029
+    },
+    {
+      "bps": 175.0,
+      "predicted": 6.8852,
+      "delta_pp": 0.3103,
+      "ci_lo": 6.7065,
+      "ci_hi": 7.0029
+    },
+    {
+      "bps": 200.0,
+      "predicted": 6.8852,
+      "delta_pp": 0.3103,
+      "ci_lo": 6.7065,
+      "ci_hi": 7.0029
+    }
+  ]
+}

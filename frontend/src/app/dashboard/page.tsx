@@ -39,6 +39,8 @@ function ChartCard({
 }
 
 export default function DashboardPage() {
+  // Single timeseries fetch covers both the line chart and the histogram —
+  // the histogram only needs target_wacmr which is already in the response.
   const {
     data: tsData,
     isLoading: tsLoading,
@@ -58,16 +60,6 @@ export default function DashboardPage() {
   } = useQuery({
     queryKey: ["correlation"],
     queryFn: () => fetchAPI("/api/analytics/correlation-top?n=15"),
-  });
-
-  const {
-    data: distData,
-    isLoading: distLoading,
-    error: distError,
-  } = useQuery({
-    queryKey: ["distribution"],
-    queryFn: () =>
-      fetchAPI("/api/data/timeseries?columns=target_wacmr"),
   });
 
   const {
@@ -184,17 +176,17 @@ export default function DashboardPage() {
           )}
         </ChartCard>
 
-        {/* Distribution */}
+        {/* Distribution — derived from the same timeseries fetch above */}
         <ChartCard
           title="WACMR Distribution"
-          isLoading={distLoading}
-          error={distError as Error | null}
+          isLoading={tsLoading}
+          error={tsError as Error | null}
         >
-          {distData && (
+          {tsData && (
             <Plot
               data={[
                 {
-                  x: distData.series?.target_wacmr || [],
+                  x: tsData.series?.target_wacmr || [],
                   type: "histogram" as const,
                   marker: {
                     color: CHART_COLORS[0],
