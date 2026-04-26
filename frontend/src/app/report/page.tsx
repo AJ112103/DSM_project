@@ -368,7 +368,16 @@ function parseReport(raw: string): ParsedReport {
     // A real box-drawing table contains vertical/corner characters, not just
     // horizontal ones. Narrowing the regex here prevents subsection markers
     // (which contain only ─) from being mis-classified as tables.
-    if (!earlySubMatch && /[┌┐┤├└┘│┼]/.test(trimmed)) {
+    const isBoxLine = !earlySubMatch && /[┌┐┤├└┘│┼]/.test(trimmed);
+    // Markdown pipe table line: starts and ends with `|` and has at least
+    // one separator inside. Excludes inline `|` text by requiring the line
+    // to be visually a row.
+    const isPipeLine =
+      !earlySubMatch &&
+      /^\s*\|.*\|\s*$/.test(line) &&
+      (line.match(/\|/g) || []).length >= 3;
+
+    if (isBoxLine || isPipeLine) {
       flushPara(); flushList();
       tableBuf.push(line);
       i++; continue;
@@ -568,7 +577,27 @@ function parseAsciiTable(raw: string): ParsedTable | null {
     .map((l) => l.trimEnd())
     .filter((l) => l.trim().length > 0);
 
-  // Data rows start with `│` (after optional leading whitespace).
+  // Pipe (markdown) table: lines that start AND end with `|`. Drop the
+  // separator row consisting only of `-`, `:` and `|`.
+  const pipeRows = lines
+    .filter((l) => /^\s*\|.*\|\s*$/.test(l))
+    .filter((l) => !/^\s*\|[\s\-:|]+\|\s*$/.test(l))
+    .map((l) =>
+      l
+        .trim()
+        .replace(/^\||\|$/g, "")
+        .split("|")
+        .map((c) => c.trim())
+    );
+  if (pipeRows.length >= 2) {
+    const colCount = pipeRows[0].length;
+    if (pipeRows.every((r) => r.length === colCount)) {
+      const [header, ...rows] = pipeRows;
+      return { header, rows };
+    }
+  }
+
+  // Box-drawing table fallback: rows start with `│`.
   const dataRows = lines
     .filter((l) => /^\s*│/.test(l))
     .map((l) =>

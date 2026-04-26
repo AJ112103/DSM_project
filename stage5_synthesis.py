@@ -184,26 +184,24 @@ def run_stage5():
 ── 0.5 Dataset Identification ────────────────────────────────────────
 
   Primary Source — NDAP API (RBI Open Data):
-  ┌─────────────────────────────────────────────────────────────────┐
-  │ Domain              │ Dataset                        │ Freq     │
-  ├─────────────────────┼────────────────────────────────┼──────────┤
-  │ Monetary Policy     │ RBI Ratios & Rates             │ Weekly   │
-  │ Central Bank B/S    │ RBI Liabilities & Assets       │ Weekly   │
-  │ Money Supply        │ Weekly Aggregates (M3, Reserve)│ Weekly   │
-  │ Debt Markets        │ Commercial Paper Details       │ Weekly   │
-  │ Debt Markets        │ Treasury Bills Details         │ Weekly   │
-  │ Repo Markets        │ Market Repo Transactions       │ Weekly   │
-  │ Debt Markets        │ Central Govt Dated Securities  │ Weekly   │
-  │ Inflation           │ Major Price Indices (CPI)      │ Monthly  │
-  └─────────────────────┴────────────────────────────────┴──────────┘
+
+  | Domain           | Dataset                         | Freq    |
+  |------------------|---------------------------------|---------|
+  | Monetary Policy  | RBI Ratios & Rates              | Weekly  |
+  | Central Bank B/S | RBI Liabilities & Assets        | Weekly  |
+  | Money Supply     | Weekly Aggregates (M3, Reserve) | Weekly  |
+  | Debt Markets     | Commercial Paper Details        | Weekly  |
+  | Debt Markets     | Treasury Bills Details          | Weekly  |
+  | Repo Markets     | Market Repo Transactions        | Weekly  |
+  | Debt Markets     | Central Govt Dated Securities   | Weekly  |
+  | Inflation        | Major Price Indices (CPI)       | Monthly |
 
   External Source — Yahoo Finance (NDAP supplement):
-  ┌─────────────────────────────────────────────────────────────────┐
-  │ Domain              │ Dataset            │ Ticker  │ Freq       │
-  ├─────────────────────┼────────────────────┼─────────┼────────────┤
-  │ Equity Markets      │ Nifty 50 OHLCV     │ ^NSEI   │ Weekly     │
-  │ Forex               │ USD/INR Rate OHLCV │ USDINR=X│ Weekly     │
-  └─────────────────────┴────────────────────┴─────────┴────────────┘
+
+  | Domain         | Dataset            | Ticker   | Freq   |
+  |----------------|--------------------|----------|--------|
+  | Equity Markets | Nifty 50 OHLCV     | ^NSEI    | Weekly |
+  | Forex          | USD/INR Rate OHLCV | USDINR=X | Weekly |
 
   Rationale for external datasets:
   • NDAP does not publish a machine-readable weekly Nifty or forex
