@@ -166,3 +166,47 @@ def shap_waterfall(week_date: str):
             for j in order[:top_n]
         ],
     }
+
+
+@router.get("/shap-by-regime")
+def shap_by_regime(top_n: int = Query(12, ge=1, le=50)):
+    """Mean |SHAP| per feature, split by regime label."""
+    shap_npy = SAVED_MODEL_DIR / "shap_values.npy"
+    feat_path = SAVED_MODEL_DIR / "feature_names.json"
+
+    if not shap_npy.exists() or not feat_path.exists():
+        return {"error": "SHAP values not found. Run backend/ml/train_and_save.py first."}
+
+    shap_arr = np.load(shap_npy)
+    with open(feat_path) as f:
+        feat_names = json.load(f)
+
+    df = get_dataframe()
+    if "regime_label" not in df.columns:
+        return {"error": "regime_label not found. Run stage4 first."}
+
+    # Align lengths — SHAP array may be shorter than df (walk-forward offset)
+    n_shap = shap_arr.shape[0]
+    regime_labels = df["regime_label"].values[-n_shap:]
+
+    # Overall top features by mean |SHAP|
+    overall_mean = np.mean(np.abs(shap_arr), axis=0)
+    top_idx = np.argsort(overall_mean)[::-1][:top_n]
+
+    regimes_list = sorted(set(int(r) for r in regime_labels))
+    result = []
+    for idx in top_idx:
+        entry = {
+            "feature": feat_names[idx],
+            "label": get_label(feat_names[idx]),
+            "overall": round(float(overall_mean[idx]), 5),
+        }
+        for r in regimes_list:
+            mask = regime_labels == r
+            if mask.sum() > 0:
+                entry[f"regime_{r}"] = round(float(np.mean(np.abs(shap_arr[mask, idx]))), 5)
+            else:
+                entry[f"regime_{r}"] = 0.0
+        result.append(entry)
+
+    return {"features": result, "regimes": regimes_list}

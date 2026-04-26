@@ -4,7 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Info, AlertTriangle, Lightbulb, ArrowUpRight, ImageIcon } from "lucide-react";
+import { Info, AlertTriangle, Lightbulb, ArrowUpRight, ImageIcon, User, Clock, Calendar } from "lucide-react";
+import { motion, useScroll, useSpring } from "framer-motion";
 import { fetchAPI } from "@/lib/api";
 import { PLOTLY_DARK_LAYOUT, PLOTLY_CONFIG, CHART_COLORS, darkLayout } from "@/lib/plotly-theme";
 import { cn } from "@/lib/utils";
@@ -126,6 +127,122 @@ export function Stat({
 
 export function StatGrid({ children }: { children: React.ReactNode }) {
   return <div className="my-6 grid grid-cols-2 gap-6 sm:grid-cols-4">{children}</div>;
+}
+
+// ─── Editorial Elements ───────────────────────────────────────────────────
+
+export function ReadingProgressBar() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  return (
+    <motion.div
+      className="fixed inset-x-0 top-0 z-[100] h-1 origin-left bg-cyan-400"
+      style={{ scaleX }}
+    />
+  );
+}
+
+export function DropCap({ children }: { children: string }) {
+  const firstLetter = children.charAt(0);
+  const rest = children.slice(1);
+  return (
+    <p className="text-lg leading-relaxed text-slate-300 lg:text-xl">
+      <span className="float-left mr-3 mt-1 font-serif text-7xl font-bold leading-[0.8] text-cyan-400" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+        {firstLetter}
+      </span>
+      {rest}
+    </p>
+  );
+}
+
+export function AuthorCard({ authors }: { authors: { name: string; role: string }[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="my-8 flex w-fit items-center gap-6 rounded-2xl border border-slate-800 bg-slate-900/40 p-4"
+    >
+      <div className="flex -space-x-2">
+        {authors.map((_, i) => (
+          <div key={i} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-800 overflow-hidden">
+            <User size={18} className="text-slate-400" />
+          </div>
+        ))}
+      </div>
+      <div className="pr-2">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-white">
+          {authors.map(a => a.name).join(" & ")}
+        </p>
+        <p className="text-[10px] font-mono text-slate-500">
+          {authors[0].role} • Spring 2026
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+export function EditorialHeader({
+  title,
+  subtitle,
+  date,
+  readTime,
+}: {
+  title: string;
+  subtitle: string;
+  date: string;
+  readTime: string;
+}) {
+  return (
+    <header className="mx-auto max-w-3xl space-y-8 pb-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="space-y-6"
+      >
+        <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.3em] text-slate-500">
+          <span className="flex items-center gap-1.5 text-cyan-400">
+            <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+            Project Narrative
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            {readTime}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            {date}
+          </span>
+        </div>
+
+        <h1
+          className="text-balance text-5xl font-bold tracking-tight text-white sm:text-7xl lg:text-8xl"
+          style={{ lineHeight: "0.9" }}
+        >
+          {title.split(" ").map((word, i) => (
+            <span key={i} className="inline-block mr-4">
+              {i % 2 === 1 ? (
+                <em className="italic font-normal text-cyan-300" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                  {word}
+                </em>
+              ) : (
+                word.toUpperCase()
+              )}
+            </span>
+          ))}
+        </h1>
+
+        <p className="max-w-2xl text-lg leading-relaxed text-slate-400 sm:text-xl">
+          {subtitle}
+        </p>
+      </motion.div>
+    </header>
+  );
 }
 
 // ─── Code block ─────────────────────────────────────────────────────────────
@@ -505,6 +622,307 @@ export function CounterfactualEmbed({
         <figcaption className="mt-3 text-xs italic text-slate-500">{caption}</figcaption>
       )}
     </figure>
+  );
+}
+
+// ─── Interactive figure embeds (replace static PNGs) ────────────────────────
+
+function EmbedShell({ caption, children }: { caption?: string; children: React.ReactNode }) {
+  return (
+    <motion.figure
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="not-prose my-10 print:break-inside-avoid"
+    >
+      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-2 shadow-inner">
+        {children}
+      </div>
+      {caption && (
+        <figcaption className="mt-4 text-[13px] leading-relaxed italic text-slate-400">
+          {caption}
+        </figcaption>
+      )}
+    </motion.figure>
+  );
+}
+
+function EmbedLoading({ label }: { label: string }) {
+  return (
+    <div className="flex h-80 items-center justify-center text-xs text-slate-600">
+      Loading {label}…
+    </div>
+  );
+}
+
+export function WacmrTimeSeriesEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ series: Record<string, unknown[]> } | null>({
+    queryKey: ["blog-wacmr-ts"],
+    queryFn: () => fetchAPI("/api/data/timeseries?columns=target_wacmr").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const dates = (data?.series?.dates as string[]) || [];
+  const wacmr = (data?.series?.target_wacmr as number[]) || [];
+  if (!dates.length) return <EmbedShell caption={caption}><EmbedLoading label="WACMR time series" /></EmbedShell>;
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[{ type: "scatter", mode: "lines", x: dates, y: wacmr, name: "WACMR", line: { color: CHART_COLORS[0], width: 1.8 } }] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 340, margin: { l: 50, r: 20, t: 30, b: 40 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Date", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "WACMR (%)", font: { size: 11 } } }, hovermode: "x unified" } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function SilhouetteEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ scores: Record<string, number>; optimal_k: string } | null>({
+    queryKey: ["blog-silhouette-v2"],
+    queryFn: () => fetchAPI("/api/analytics/silhouette").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.scores) return <EmbedShell caption={caption}><EmbedLoading label="silhouette scores" /></EmbedShell>;
+  const ks = Object.keys(data.scores).map(Number);
+  const scores = ks.map((k) => data.scores[String(k)]);
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[
+          { type: "bar", x: ks, y: scores, name: "Silhouette", marker: { color: CHART_COLORS[0], opacity: 0.7 }, hovertemplate: "K=%{x}<br>Score: %{y:.4f}<extra></extra>" },
+          { type: "scatter", mode: "lines+markers", x: ks, y: scores, name: "Silhouette (line)", yaxis: "y", line: { color: CHART_COLORS[5], width: 2 }, marker: { size: 7 }, showlegend: false },
+        ] as unknown as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 320, margin: { l: 55, r: 20, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Number of clusters (K)", font: { size: 11 } }, dtick: 1 }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "Silhouette score", font: { size: 11 } } }, hovermode: "x unified", showlegend: false } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function PcaScatterEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ data: { pc1: number; pc2: number; regime_label: number; week_date: string; wacmr: number }[] } | null>({
+    queryKey: ["blog-pca"],
+    queryFn: () => fetchAPI("/api/analytics/pca").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.data?.length) return <EmbedShell caption={caption}><EmbedLoading label="PCA scatter" /></EmbedShell>;
+  const regimes = [...new Set(data.data.map((p) => p.regime_label))].sort();
+  const regimeNames: Record<number, string> = { 0: "Regime 0 (Accommodation)", 1: "Regime 1 (Tightening)" };
+  const traces = regimes.map((r, i) => {
+    const pts = data.data.filter((p) => p.regime_label === r);
+    return {
+      type: "scatter", mode: "markers", name: regimeNames[r] || `Regime ${r}`,
+      x: pts.map((p) => p.pc1), y: pts.map((p) => p.pc2),
+      marker: { color: CHART_COLORS[i], size: 5, opacity: 0.7 },
+      text: pts.map((p) => `${p.week_date}<br>WACMR: ${p.wacmr}`),
+      hovertemplate: "%{text}<extra></extra>",
+    };
+  });
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={traces as unknown as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 400, margin: { l: 55, r: 20, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "PC1", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "PC2", font: { size: 11 } } }, legend: { orientation: "h" as const, x: 0, y: -0.18, font: { size: 10, color: "#e2e8f0" } }, hovermode: "closest" } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function RegimeTimeSeriesEmbed({ caption }: { caption?: string }) {
+  const { data: tsData } = useQuery<{ series: Record<string, unknown[]> } | null>({
+    queryKey: ["blog-regime-ts-data"],
+    queryFn: () => fetchAPI("/api/data/timeseries?columns=target_wacmr").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const { data: rtData } = useQuery<{ dates: string[]; regimes: number[] } | null>({
+    queryKey: ["blog-regime-transitions"],
+    queryFn: () => fetchAPI("/api/analytics/regime-transitions").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const dates = (tsData?.series?.dates as string[]) || [];
+  const wacmr = (tsData?.series?.target_wacmr as number[]) || [];
+  if (!dates.length) return <EmbedShell caption={caption}><EmbedLoading label="regime time series" /></EmbedShell>;
+
+  // Build regime band shapes
+  const shapes: Partial<Plotly.Shape>[] = [];
+  if (rtData?.dates?.length) {
+    const rd = rtData.dates; const rr = rtData.regimes;
+    const colors: Record<number, string> = { 0: "rgba(16,185,129,0.10)", 1: "rgba(245,158,11,0.10)" };
+    let start = 0;
+    for (let i = 1; i <= rd.length; i++) {
+      if (i === rd.length || rr[i] !== rr[start]) {
+        shapes.push({ type: "rect", xref: "x", yref: "paper", x0: rd[start], x1: rd[i - 1], y0: 0, y1: 1, fillcolor: colors[rr[start]] || "rgba(100,100,100,0.08)", line: { width: 0 }, layer: "below" });
+        start = i;
+      }
+    }
+  }
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[{ type: "scatter", mode: "lines", x: dates, y: wacmr, name: "WACMR", line: { color: CHART_COLORS[0], width: 1.8 } }] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 360, margin: { l: 50, r: 20, t: 30, b: 40 }, shapes, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Date", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "WACMR (%)", font: { size: 11 } } }, hovermode: "x unified" } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function RegimeBoxplotEmbed({ caption }: { caption?: string }) {
+  const { data: tsData } = useQuery<{ series: Record<string, unknown[]> } | null>({
+    queryKey: ["blog-regime-ts-data"],
+    queryFn: () => fetchAPI("/api/data/timeseries?columns=target_wacmr").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const { data: rtData } = useQuery<{ dates: string[]; regimes: number[] } | null>({
+    queryKey: ["blog-regime-transitions"],
+    queryFn: () => fetchAPI("/api/analytics/regime-transitions").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const wacmr = (tsData?.series?.target_wacmr as number[]) || [];
+  const regimes = rtData?.regimes || [];
+  if (!wacmr.length || !regimes.length) return <EmbedShell caption={caption}><EmbedLoading label="regime boxplot" /></EmbedShell>;
+
+  const unique = [...new Set(regimes)].sort();
+  const traces = unique.map((r, i) => {
+    const vals = wacmr.filter((_, idx) => regimes[idx] === r);
+    return { type: "box", y: vals, name: `Regime ${r}`, marker: { color: CHART_COLORS[i] }, boxmean: true };
+  });
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={traces as unknown as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 340, margin: { l: 55, r: 20, t: 30, b: 40 }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "WACMR (%)", font: { size: 11 } } }, showlegend: true, legend: { orientation: "h" as const, x: 0, y: -0.15, font: { size: 10, color: "#e2e8f0" } } } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function ActualVsPredictedEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ dates: string[]; actual: number[]; predicted: number[] } | null>({
+    queryKey: ["blog-actual-vs-pred"],
+    queryFn: () => fetchAPI("/api/forecast/walkforward?last_n_years=2").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.dates) return <EmbedShell caption={caption}><EmbedLoading label="actual vs predicted" /></EmbedShell>;
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[
+          { type: "scatter", mode: "lines", x: data.dates, y: data.actual, name: "Actual", line: { color: CHART_COLORS[0], width: 1.8 } },
+          { type: "scatter", mode: "lines", x: data.dates, y: data.predicted, name: "Predicted", line: { color: CHART_COLORS[1], width: 1.8, dash: "dot" } },
+        ] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 360, margin: { l: 50, r: 20, t: 30, b: 40 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Date", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "WACMR (%)", font: { size: 11 } } }, legend: { orientation: "h" as const, x: 0, y: -0.15, font: { size: 10 } }, hovermode: "x unified" } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function ResidualCalendarEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ dates: string[]; residuals: number[] } | null>({
+    queryKey: ["blog-residuals"],
+    queryFn: () => fetchAPI("/api/forecast/walkforward").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.dates) return <EmbedShell caption={caption}><EmbedLoading label="residual calendar" /></EmbedShell>;
+
+  // Pivot to Month (X) vs Year (Y) for a calendar-like heatmap
+  const years: string[] = []; const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const z: (number | null)[][] = [];
+  data.dates.forEach((d, i) => {
+    const date = new Date(d); const y = String(date.getFullYear()); const m = date.getMonth();
+    if (!years.includes(y)) { years.push(y); z.push(new Array(12).fill(null)); }
+    const yi = years.indexOf(y); z[yi][m] = data.residuals[i];
+  });
+
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[{ type: "heatmap", x: months, y: years, z: z, colorscale: "RdBu", zmid: 0, hovertemplate: "%{y} %{x}<br>Residual: %{z:.4f}<extra></extra>" }] as unknown as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 300, margin: { l: 60, r: 20, t: 30, b: 40 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Month", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "Year", font: { size: 11 } } } } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function ShapByRegimeEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ features: any[]; regimes: number[] } | null>({
+    queryKey: ["blog-shap-by-regime"],
+    queryFn: () => fetchAPI("/api/forecast/shap-by-regime?top_n=12").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.features) return <EmbedShell caption={caption}><EmbedLoading label="SHAP by regime" /></EmbedShell>;
+
+  const traces = data.regimes.map((r, i) => ({
+    type: "bar", orientation: "h" as const, name: `Regime ${r}`,
+    y: data.features.map(f => f.label).reverse(),
+    x: data.features.map(f => f[`regime_${r}`]).reverse(),
+    marker: { color: CHART_COLORS[i] }
+  }));
+
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={traces as unknown as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 420, barmode: "group", margin: { l: 180, r: 20, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Mean |SHAP|", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, automargin: true }, legend: { orientation: "h" as const, x: 0, y: -0.15, font: { size: 10 } } } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function SentimentTimelineEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ series: any } | null>({
+    queryKey: ["blog-sentiment-ts"],
+    queryFn: () => fetchAPI("/api/news/sentiment").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  const dates = data?.series?.dates || [];
+  const wacmr = data?.series?.target_wacmr || [];
+  const sentiment = data?.series?.news_sentiment || [];
+
+  if (!dates.length) return <EmbedShell caption={caption}><EmbedLoading label="sentiment timeline" /></EmbedShell>;
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[
+          { type: "scatter", mode: "lines", x: dates, y: wacmr, name: "WACMR", line: { color: CHART_COLORS[0], width: 1.5 } },
+          { type: "scatter", mode: "lines", x: dates, y: sentiment, name: "Sentiment", yaxis: "y2", line: { color: CHART_COLORS[1], width: 1.5, opacity: 0.6 } },
+        ] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 400, margin: { l: 50, r: 50, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Date", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "WACMR (%)", font: { size: 11 } } }, yaxis2: { title: { text: "Sentiment score", font: { size: 11 } }, overlaying: "y", side: "right", showgrid: false, zeroline: true, zerolinecolor: "rgba(148,163,184,0.3)" }, legend: { orientation: "h" as const, x: 0, y: -0.18, font: { size: 10 } }, hovermode: "x unified" } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function EventDensityEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ events: any[] } | null>({
+    queryKey: ["blog-events-density"],
+    queryFn: () => fetchAPI("/api/news/events").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.events) return <EmbedShell caption={caption}><EmbedLoading label="event density" /></EmbedShell>;
+
+  const years: string[] = []; const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const z: number[][] = [];
+  data.events.forEach(e => {
+    const d = new Date(e.date); const y = String(d.getFullYear()); const m = d.getMonth();
+    if (!years.includes(y)) { years.push(y); z.push(new Array(12).fill(0)); }
+    const yi = years.indexOf(y); z[yi][m] += 1;
+  });
+
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[{ type: "heatmap", x: months, y: years, z: z, colorscale: "Viridis", hovertemplate: "%{y} %{x}<br>Events: %{z}<extra></extra>" }] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 300, margin: { l: 60, r: 20, t: 30, b: 40 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Month", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, title: { text: "Year", font: { size: 11 } } } } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
   );
 }
 

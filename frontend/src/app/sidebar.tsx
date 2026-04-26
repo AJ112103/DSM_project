@@ -59,7 +59,7 @@ export default function Sidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-blue-600/10 text-blue-400"
+                    ? "bg-accent/10 text-accent"
                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 )}
                 title={collapsed ? item.label : undefined}
@@ -67,14 +67,14 @@ export default function Sidebar() {
                 <item.icon
                   className={cn(
                     "h-5 w-5 shrink-0",
-                    isActive ? "text-blue-400" : "text-slate-500"
+                    isActive ? "text-accent" : "text-slate-500"
                   )}
                 />
                 {(!collapsed || mobileOpen) && (
                   <span className="truncate">{item.label}</span>
                 )}
                 {isActive && (!collapsed || mobileOpen) && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400" />
+                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />
                 )}
               </Link>
             </li>
@@ -86,7 +86,7 @@ export default function Sidebar() {
 
   const header = (
     <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-4">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent">
         <Activity className="h-4 w-4 text-white" />
       </div>
       {(!collapsed || mobileOpen) && (
@@ -158,7 +158,7 @@ export default function Sidebar() {
         >
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent">
                 <Activity className="h-3.5 w-3.5 text-white" />
               </div>
               <span className="text-sm font-bold text-white">WACMR Analytics</span>

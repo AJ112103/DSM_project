@@ -38,6 +38,14 @@ function ChartCard({
   );
 }
 
+function ChartDescription({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-4 border-t border-slate-800 pt-3 text-[12px] leading-relaxed text-slate-400">
+      {children}
+    </p>
+  );
+}
+
 export default function DashboardPage() {
   // Single timeseries fetch covers both the line chart and the histogram —
   // the histogram only needs target_wacmr which is already in the response.
@@ -69,6 +77,24 @@ export default function DashboardPage() {
   } = useQuery({
     queryKey: ["regime-summary"],
     queryFn: () => fetchAPI("/api/analytics/regimes"),
+  });
+
+  const {
+    data: pcaData,
+    isLoading: pcaLoading,
+    error: pcaError,
+  } = useQuery({
+    queryKey: ["pca-dashboard"],
+    queryFn: () => fetchAPI("/api/analytics/pca"),
+  });
+
+  const {
+    data: shapRegimeData,
+    isLoading: shapRegimeLoading,
+    error: shapRegimeError,
+  } = useQuery({
+    queryKey: ["shap-by-regime-dashboard"],
+    queryFn: () => fetchAPI("/api/forecast/shap-by-regime?top_n=10"),
   });
 
   return (
@@ -134,6 +160,9 @@ export default function DashboardPage() {
               className="w-full"
             />
           )}
+          <ChartDescription>
+            <strong>Policy Transmission</strong>: Tracks the primary interbank target (WACMR) against the RBI's main policy corridors. Divergences indicate liquidity surplus or stress.
+          </ChartDescription>
         </ChartCard>
 
         {/* Correlation Heatmap */}
@@ -174,6 +203,9 @@ export default function DashboardPage() {
               className="w-full"
             />
           )}
+          <ChartDescription>
+            <strong>Feature Linkage</strong>: Correlation matrix of top-ranked features. Deep red indicates strong positive linkage; deep blue indicates negative relationship.
+          </ChartDescription>
         </ChartCard>
 
         {/* Distribution — derived from the same timeseries fetch above */}
@@ -207,6 +239,9 @@ export default function DashboardPage() {
               className="w-full"
             />
           )}
+          <ChartDescription>
+            <strong>Rate Volatility</strong>: Shows the frequency of WACMR levels over 545 weeks. Bimodal peaks often correspond to distinct interest rate regimes.
+          </ChartDescription>
         </ChartCard>
 
         {/* Regime Donut */}
@@ -245,6 +280,93 @@ export default function DashboardPage() {
               className="w-full"
             />
           )}
+          <ChartDescription>
+            <strong>Market Mix</strong>: Proportional breakdown of total weeks spent in each discovered regime (e.g., Accommodation vs. Tightening).
+          </ChartDescription>
+        </ChartCard>
+
+        {/* PCA 3D Scatter */}
+        <ChartCard
+          title="Market State Topology (3D PCA)"
+          isLoading={pcaLoading}
+          error={pcaError as Error | null}
+        >
+          {pcaData?.data && (
+            <Plot
+              data={[
+                {
+                  x: pcaData.data.map((d: any) => d.pc1),
+                  y: pcaData.data.map((d: any) => d.pc2),
+                  z: pcaData.data.map((d: any) => d.pc3),
+                  mode: "markers",
+                  type: "scatter3d",
+                  marker: {
+                    size: 4,
+                    color: pcaData.data.map((d: any) => d.regime_label),
+                    colorscale: "Viridis",
+                    opacity: 0.8,
+                    line: { width: 0.5, color: "rgba(255,255,255,0.2)" },
+                  },
+                  text: pcaData.data.map((d: any) => `${d.week_date}<br>WACMR: ${d.wacmr}%`),
+                  hovertemplate: "%{text}<extra></extra>",
+                },
+              ]}
+              layout={{
+                ...PLOTLY_DARK_LAYOUT,
+                height: 400,
+                scene: {
+                  xaxis: { title: { text: "PC1" }, gridcolor: "rgba(255,255,255,0.1)", zeroline: false },
+                  yaxis: { title: { text: "PC2" }, gridcolor: "rgba(255,255,255,0.1)", zeroline: false },
+                  zaxis: { title: { text: "PC3" }, gridcolor: "rgba(255,255,255,0.1)", zeroline: false },
+                  bgcolor: "rgba(0,0,0,0)",
+                },
+                margin: { l: 0, r: 0, b: 0, t: 0 },
+              } as any}
+              config={PLOTLY_CONFIG}
+              className="w-full"
+            />
+          )}
+          <ChartDescription>
+            <strong>Market DNA</strong>: A 3D projection of the 117-dimensional feature space. Clusters reveal how the "state" of the market fundamentally shifts over time.
+          </ChartDescription>
+        </ChartCard>
+
+        {/* SHAP by Regime */}
+        <ChartCard
+          title="Regime Feature Sensitivity (SHAP)"
+          isLoading={shapRegimeLoading}
+          error={shapRegimeError as Error | null}
+        >
+          {shapRegimeData?.features && (
+            <Plot
+              data={shapRegimeData.regimes.map((regime: string, idx: number) => ({
+                type: "bar" as const,
+                orientation: "h" as const,
+                name: `Regime ${regime}`,
+                y: shapRegimeData.features.map((f: any) => f.label),
+                x: shapRegimeData.features.map((f: any) => f[`regime_${regime}`]),
+                marker: { color: CHART_COLORS[idx] },
+              }))}
+              layout={{
+                ...PLOTLY_DARK_LAYOUT,
+                height: 400,
+                barmode: "group" as const,
+                xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Mean |SHAP| (Impact)" } },
+                yaxis: {
+                  ...PLOTLY_DARK_LAYOUT.yaxis,
+                  tickfont: { size: 10 },
+                  automargin: true,
+                },
+                legend: { ...PLOTLY_DARK_LAYOUT.legend, orientation: "h" as const, y: -0.15 },
+                margin: { l: 150, r: 20, t: 30, b: 60 },
+              } as any}
+              config={PLOTLY_CONFIG}
+              className="w-full"
+            />
+          )}
+          <ChartDescription>
+            <strong>Model Transparency</strong>: Ranks the top 10 factors by SHAP impact. Shows how feature importance changes depending on the current market regime.
+          </ChartDescription>
         </ChartCard>
       </div>
     </div>

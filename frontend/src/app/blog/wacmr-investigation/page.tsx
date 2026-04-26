@@ -16,6 +16,20 @@ import {
   CounterfactualEmbed,
   DashboardLink,
   ScrollSpyTOC,
+  WacmrTimeSeriesEmbed,
+  SilhouetteEmbed,
+  PcaScatterEmbed,
+  RegimeTimeSeriesEmbed,
+  RegimeBoxplotEmbed,
+  ActualVsPredictedEmbed,
+  ResidualCalendarEmbed,
+  ShapByRegimeEmbed,
+  SentimentTimelineEmbed,
+  EventDensityEmbed,
+  ReadingProgressBar,
+  DropCap,
+  AuthorCard,
+  EditorialHeader,
 } from "@/components/blog/prose";
 
 export const metadata = {
@@ -68,30 +82,23 @@ export default function WacmrInvestigationPost() {
         Back to blog
       </Link>
 
+      <ReadingProgressBar />
+
       {/* Hero */}
-      <header className="mx-auto max-w-3xl space-y-6 pb-6">
-        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-cyan-400">
-          <time>April 2026</time>
-          <span>·</span>
-          <span>≈ 18 min read</span>
-          <span>·</span>
-          <span>With figures, code &amp; live widgets</span>
-        </div>
-        <h1
-          className="text-balance text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl"
-          style={{ fontFamily: "var(--font-instrument-serif)" }}
-        >
-          Predicting the{" "}
-          <em className="italic text-cyan-300">heartbeat</em>{" "}
-          of Indian monetary policy
-        </h1>
-        <Lede>
-          A 545-week investigation into the Weighted Average Call Money Rate —
-          the overnight rate at which Indian banks settle their cash books, and
-          the quietest but most honest signal that RBI policy is actually
-          transmitting.
-        </Lede>
-        {/* Key-findings ribbon */}
+      <EditorialHeader
+        title="Predicting the heartbeat of Indian monetary policy"
+        subtitle="A 545-week investigation into the Weighted Average Call Money Rate — the quietest but most honest signal that RBI policy is actually transmitting."
+        date="April 2026"
+        readTime="18 min read"
+      />
+
+      <AuthorCard
+        authors={[
+          { name: "Arnav and Aamer", role: "Data Science & Management" }
+        ]}
+      />
+
+      <div className="mx-auto max-w-3xl">
         <dl className="mt-6 grid grid-cols-2 divide-slate-800 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-5 sm:divide-x">
           {[
             { k: "Weeks", v: "545" },
@@ -116,7 +123,7 @@ export default function WacmrInvestigationPost() {
             </div>
           ))}
         </dl>
-      </header>
+      </div>
 
       {/* Two-column layout: article + sticky TOC */}
       <div className="mt-8 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
@@ -143,14 +150,13 @@ export default function WacmrInvestigationPost() {
           <Prose>
             <Section id="why-it-matters">
               <H2 id="why-it-matters">1. Why this rate matters</H2>
-              <p>
-                The <strong>Weighted Average Call Money Rate</strong> — WACMR —
+              <DropCap>
+                The Weighted Average Call Money Rate — WACMR —
                 is the interest rate at which scheduled Indian banks lend each
                 other money overnight, settled on the books of the Reserve Bank
                 of India. Conceptually it is a single number, published daily,
-                that answers the question:{" "}
-                <em>how much is it costing Indian banks to be short of cash tonight?</em>
-              </p>
+                that answers the question: how much is it costing Indian banks to be short of cash tonight?
+              </DropCap>
               <p>
                 That sounds esoteric, but it is the sharpest thermometer we have
                 of monetary-policy transmission. The RBI chooses a policy stance
@@ -179,10 +185,8 @@ export default function WacmrInvestigationPost() {
                 any number cited here.
               </p>
 
-              <Figure
-                src="/visualizations/target_timeseries.png"
+              <WacmrTimeSeriesEmbed
                 caption="The forecasting target: weekly WACMR from Feb 2014 to Jul 2024. The sharp drop in March 2020 — and the persistence of low rates that followed — is the core empirical puzzle the rest of this essay unpacks."
-                alt="WACMR weekly time series"
               />
             </Section>
 
@@ -324,10 +328,8 @@ def fetch(src_id: str):
                 about the pandemic. It found it in the data.
               </p>
 
-              <Figure
-                src="/visualizations/silhouette_scores.png"
+              <SilhouetteEmbed
                 caption="Silhouette score (plus the elbow on inertia) across K ∈ {2…7}. K = 2 wins cleanly — both metrics agree that exactly two regimes best describe the feature space."
-                alt="Silhouette and elbow scan across k"
               />
 
               <CodeBlock lang="python">{`# stage4_regime_discovery.py — excerpt
@@ -348,10 +350,8 @@ for k in range(2, 8):
 
 optimal_k = max(scores, key=scores.get)   # -> 2`}</CodeBlock>
 
-              <Figure
-                src="/visualizations/pca_regime_scatter.png"
+              <PcaScatterEmbed
                 caption="Weeks projected onto the first two principal components, coloured by K-Means cluster. The separation is geometric, not temporal — yet the boundary aligns almost exactly with the March 2020 COVID break."
-                alt="PCA scatter coloured by regime label"
               />
 
               <Callout tone="finding" title="Finding #1 — The regime break is real, not cosmetic">
@@ -365,16 +365,12 @@ optimal_k = max(scores, key=scores.get)   # -> 2`}</CodeBlock>
                 </p>
               </Callout>
 
-              <Figure
-                src="/visualizations/regime_timeseries.png"
+              <RegimeTimeSeriesEmbed
                 caption="WACMR with regime bands overlaid. The amber region (Regime 1) is the pre-COVID tightening era; the green region (Regime 0) is the post-COVID accommodation regime that outlasted the pandemic."
-                alt="WACMR regime-shaded time series"
               />
 
-              <Figure
-                src="/visualizations/regime_wacmr_boxplot.png"
+              <RegimeBoxplotEmbed
                 caption="Regime-wise distribution of WACMR. Means differ by ~150 bps (6.5% vs 4.8%) and the second moment differs too — Regime 0 is both lower and tighter."
-                alt="WACMR distribution by regime"
               />
 
               <p>
@@ -427,10 +423,8 @@ for t in range(MIN_TRAIN_SIZE, n):
     pred = model.predict(X[t:t+1])[0]
     results.append({"week": dates[t], "actual": y[t], "predicted": pred})`}</CodeBlock>
 
-              <Figure
-                src="/visualizations/actual_vs_predicted.png"
+              <ActualVsPredictedEmbed
                 caption="Walk-forward predictions (dashed) against the actual WACMR (solid) across 389 one-week-ahead folds. The model tracks both the 2020 regime break and the 2022–24 tightening cycle."
-                alt="Actual vs predicted WACMR"
               />
 
               <BlogTable
@@ -454,10 +448,8 @@ for t in range(MIN_TRAIN_SIZE, n):
                 overnight.
               </p>
 
-              <Figure
-                src="/visualizations/residual_calendar.png"
+              <ResidualCalendarEmbed
                 caption="Residuals by week-of-year and month. No clear seasonality survives — good news, and our calendar-effect hypothesis is rejected."
-                alt="Residual calendar heatmap"
               />
 
               <Callout tone="warn" title="Why not a deep model?">
@@ -506,10 +498,8 @@ for t in range(MIN_TRAIN_SIZE, n):
                 </p>
               </Callout>
 
-              <Figure
-                src="/visualizations/shap_by_regime.png"
+              <ShapByRegimeEmbed
                 caption="Top features ranked by mean |SHAP|, split by regime. The engineered WACMR–Repo spread is decisive in Regime 0 where persistent surplus liquidity dragged WACMR below the Repo Rate."
-                alt="SHAP feature importance split by regime"
               />
 
               <p>
@@ -539,16 +529,12 @@ for t in range(MIN_TRAIN_SIZE, n):
                 was re-run.
               </p>
 
-              <Figure
-                src="/visualizations/news_sentiment_timeline.png"
+              <SentimentTimelineEmbed
                 caption="The 75-event hand-curated timeline: rolling sentiment overlaid on WACMR. Hawkish clusters (2018, 2022–23) correspond to visible upward-momentum in the underlying rate; dovish clusters (2019, 2020) precede the Regime 0 break."
-                alt="NLP-curated sentiment timeline"
               />
 
-              <Figure
-                src="/visualizations/event_density_heatmap.png"
+              <EventDensityEmbed
                 caption="Event-density heatmap by year and month. MPC-meeting months (Feb, Apr, Jun, Aug, Oct, Dec) are visibly denser — validating the event-density feature."
-                alt="Monetary event density heatmap"
               />
 
               <Callout tone="warn" title="Finding #3 — News helps a little, and only on direction">

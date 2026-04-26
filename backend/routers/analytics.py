@@ -97,7 +97,11 @@ def silhouette_scores():
     sil_path = SAVED_MODEL_DIR / "silhouette_scores.json"
     if sil_path.exists():
         with open(sil_path) as f:
-            return json.load(f)
+            data = json.load(f)
+            # Ensure consistent format: {"scores": {...}, "optimal_k": "..."}
+            if "scores" not in data:
+                return {"scores": data, "optimal_k": max(data, key=data.get)}
+            return data
 
     # Fallback: compute
     df = get_dataframe()

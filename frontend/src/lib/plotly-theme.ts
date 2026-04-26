@@ -9,29 +9,34 @@
 // `darkLayout()` returns a fresh, deeply-independent object on every call.
 
 export function darkLayout(): Record<string, any> {
+  const isLight = typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light";
+  
   return {
     paper_bgcolor: "transparent",
     plot_bgcolor: "transparent",
-    font: { color: "#e2e8f0", family: "Inter, system-ui, sans-serif" },
+    font: { 
+      color: isLight ? "#0f172a" : "#e2e8f0", 
+      family: "Inter, system-ui, sans-serif" 
+    },
     xaxis: {
-      gridcolor: "#334155",
-      zerolinecolor: "#475569",
-      tickfont: { color: "#94a3b8" },
+      gridcolor: isLight ? "#e2e8f0" : "#334155",
+      zerolinecolor: isLight ? "#cbd5e1" : "#475569",
+      tickfont: { color: isLight ? "#475569" : "#94a3b8" },
     },
     yaxis: {
-      gridcolor: "#334155",
-      zerolinecolor: "#475569",
-      tickfont: { color: "#94a3b8" },
+      gridcolor: isLight ? "#e2e8f0" : "#334155",
+      zerolinecolor: isLight ? "#cbd5e1" : "#475569",
+      tickfont: { color: isLight ? "#475569" : "#94a3b8" },
     },
     legend: {
-      font: { color: "#e2e8f0" },
+      font: { color: isLight ? "#0f172a" : "#e2e8f0" },
       bgcolor: "transparent",
     },
     margin: { t: 40, r: 20, b: 40, l: 50 },
     hoverlabel: {
-      bgcolor: "#1e293b",
-      bordercolor: "#475569",
-      font: { color: "#e2e8f0" },
+      bgcolor: isLight ? "#ffffff" : "#1e293b",
+      bordercolor: isLight ? "#e2e8f0" : "#475569",
+      font: { color: isLight ? "#0f172a" : "#e2e8f0" },
     },
   };
 }
