@@ -1,0 +1,110 @@
+\section{Limitations and Future Work}
+\label{sec:limitations}
+
+A clear statement of limitations is part of any honest analysis.
+This section lists the seven most important constraints and, where
+relevant, the natural next step that would relax each one.
+
+\subsection{Target substitution from T-Bill yield to WACMR}
+
+The original project proposal targeted the 364-day Treasury Bill
+cut-off yield. As documented in Section~\ref{sec:database}, the NDAP
+\texttt{Treasury\_Bills\_Details.csv} table publishes outstanding
+amounts rather than yields, despite the schema label suggesting
+otherwise. WACMR was substituted because it is available, complete,
+and arguably a superior target for studying short-rate transmission.
+This is a substantively different target from the original proposal
+and the report's claims should be read with that in mind.
+
+\textbf{Future work:} If RBI adds T-Bill cut-off yields as a weekly
+machine-readable series (Recommendation 4 in Section
+\ref{sec:recommendations}), the same pipeline can be retrained with
+the original target and the results compared.
+
+\subsection{Two-regime simplicity}
+
+The K-Means clustering at $K=2$ is statistically optimal by silhouette
+score, but the silhouette difference between $K=2$ (0.4238) and
+$K=3$ (0.4048) is only 0.0190, which is within noise. A three-regime
+fit would split Regime 1 into a COVID-emergency sub-period and a
+post-2022 normalisation sub-period, both of which are macroeconomically
+meaningful. The two-regime choice was made on interpretability grounds:
+the $K=3$ split does not align with any single observable RBI policy
+boundary.
+
+\textbf{Future work:} A hierarchical clustering (agglomerative or HDBSCAN)
+might produce a more nuanced regime structure that does not require an
+arbitrary $K$ choice.
+
+\subsection{Two columns retained with substantial imputation}
+
+\texttt{rates\_I7496\_28} (Market Repo Rate) and
+\texttt{rates\_I7496\_29} (Certificate of Deposit Rate) had 17.4\%
+missing values, marginally below the 75\% density threshold. They
+were retained with median imputation because of their economic
+relevance. A sensitivity analysis re-running the K-Means and the
+walk-forward XGBoost without these two columns is worth doing; the
+expected delta is small but not zero.
+
+\subsection{Single-horizon forecasting only}
+
+The walk-forward analysis predicts WACMR one week ahead. Practical
+treasury planning often needs two-week and four-week horizons, and
+operational liquidity decisions can need monthly or quarterly
+forecasts. A multi-horizon forecasting setup, either as separate
+models per horizon or as a recursive one-step-ahead generator, is the
+natural extension.
+
+\textbf{Future work:} Conformal prediction or quantile XGBoost would
+also add proper uncertainty quantification rather than the current
+implicit assumption of homoskedastic Gaussian residuals.
+
+\subsection{Single-target regression rather than vector autoregression}
+
+The forecasting setup treats WACMR as a single scalar target and
+ignores the joint dynamics with related rates (91-day T-Bill yield,
+10-year G-Sec yield, USD/INR). A vector autoregression or a
+gradient-boosted multi-target regressor would capture the cross-rate
+dependencies that drive the term structure of short rates.
+
+\subsection{No causal identification claim}
+
+The counterfactual simulator (Section~\ref{sec:system}) is a
+model-based prediction, not a causal experiment. When the user moves
+the Repo Rate slider, the simulator returns the prediction the model
+would make if the Repo Rate were at that level, holding all other
+features fixed at their current observed values. This is not the same
+as the causal effect of an actual policy intervention, because real
+policy changes shift many features simultaneously.
+
+\textbf{Future work:} Combining the model with a structural VAR or
+with synthetic-control methods could identify causal effects of
+specific historical policy actions. The 2022 inter-meeting hike is a
+natural candidate.
+
+\subsection{Manual NLP corpus does not scale}
+
+The seventy-five-event corpus in Section~\ref{sec:methods-nlp} is
+expert-curated and produces clean labels, but it is impossible to
+scale manually beyond a few hundred events. The evidence in
+Section~\ref{sec:results} shows that the existing corpus correlation
+with WACMR is real but weak ($r=-0.2081$); a denser corpus might or
+might not surface a stronger relationship.
+
+\textbf{Future work:} An automated FinBERT or LLM-based sentiment
+pipeline over the full RBI press-release archive (about 5,000
+documents over the 2014--2024 window) is the obvious extension.
+Domain fine-tuning on a small labelled set of Indian-monetary-policy
+language would address the off-the-shelf model limitations identified
+in Section~\ref{sec:methods-nlp}.
+
+\subsection{No event dummies for extraordinary policy actions}
+
+The residual analysis (Section~\ref{sec:methods-supervised}) shows
+that the model's tail errors concentrate on three or four
+unsignalled inter-meeting actions. Including binary event dummies
+for these actions, derived from the published MPC calendar and from
+out-of-cycle press releases, is the obvious remediation. It was not
+implemented in this project because it requires a separate data
+source and the marginal cost was higher than the marginal benefit
+within the project timeline.

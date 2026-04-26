@@ -1,0 +1,138 @@
+\section{Datasets and Sourcing}
+\label{sec:data}
+
+The analysis combines three categories of data: a primary set of eight
+NDAP API tables published by the Reserve Bank of India, two
+supplemental market datasets from Yahoo Finance, and a domain-curated
+news corpus of seventy-five Indian monetary-policy events. Together
+these cover all five channels through which overnight liquidity is
+determined.
+
+\subsection{Primary source: NDAP API (RBI open data)}
+
+The eight NDAP datasets were fetched programmatically with
+\texttt{scripts/stage1b\_fetch\_ndap.py}. The NDAP open-data API silently
+paginates large responses, so the fetcher was built around an
+auto-pagination loop that increments the \texttt{pageno} parameter and
+appends responses until the API returns an empty page. Without this
+behaviour the initial fetch would have truncated each series to the
+first one or two hundred rows.
+
+\begin{table}[H]
+\caption{Primary datasets sourced from the NDAP API (RBI). Density is
+  measured against the canonical Friday-aligned grid after Stage 2.}
+\label{tab:ndap-sources}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{SoftGray}{white}
+\begin{tabularx}{\linewidth}{@{} l Y l c @{}}
+\toprule
+\rowcolor{Slate}\color{white}\textbf{Domain} &
+\color{white}\textbf{NDAP table} &
+\color{white}\textbf{Frequency} &
+\color{white}\textbf{Cols retained} \\
+\midrule
+Monetary policy & RBI Weekly Statistics, Ratios and Rates & Weekly & 16 \\
+Central-bank balance sheet & RBI Liabilities and Assets & Weekly & 22 \\
+Money supply & RBI Weekly Aggregates (M3, Reserve Money) & Weekly & 3 \\
+Debt markets & Commercial Paper Details & Weekly & 4 \\
+Debt markets & Treasury Bills Details (91D, 182D, 364D) & Weekly & 12 \\
+Repo markets & Market Repo Transactions & Weekly & 12 \\
+Debt markets & Central Government Dated Securities & Weekly & 5 \\
+Inflation & Major Price Indices (CPI) & Monthly $\to$ Weekly & 7 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The CPI table is the only monthly series. It is forward-filled to the
+weekly grid with a maximum carry of four weeks, which is appropriate
+because CPI is a stock variable that does not change between monthly
+releases. Two CPI sub-indices were dropped after density filtering
+(WPI at 63\% and one further sub-index at 37\%).
+
+\subsection{External supplements: Yahoo Finance market data}
+
+NDAP does not publish a machine-readable weekly equity index or
+foreign-exchange series. Two supplemental sources were added through
+the \texttt{yfinance} library in \texttt{scripts/stage1\_fetch\_yfinance.py}.
+
+\begin{table}[H]
+\caption{Yahoo Finance supplements. Both have 100\% density across the
+analysis window after the indicator warmup period is trimmed.}
+\label{tab:yfinance-sources}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{SoftGray}{white}
+\begin{tabularx}{\linewidth}{@{} l Y l l @{}}
+\toprule
+\rowcolor{Slate}\color{white}\textbf{Domain} &
+\color{white}\textbf{Series} &
+\color{white}\textbf{Ticker} &
+\color{white}\textbf{Frequency} \\
+\midrule
+Equity markets & Nifty 50 OHLCV & \texttt{\textasciicircum NSEI} & Weekly \\
+Foreign exchange & USD/INR OHLCV & \texttt{USDINR=X} & Weekly \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The economic rationale for adding these series is that foreign
+institutional equity flows directly affect rupee liquidity, and the
+USD/INR level shapes the central bank's foreign-exchange intervention
+decisions, both of which feed back into call-money supply. Including
+these series also lets us empirically test whether market-sentiment
+signals carry predictive content for overnight rates (hypothesis H4).
+
+\subsection{Engineered features: technical indicators}
+
+Five custom technical indicators are computed on top of each OHLCV
+series in \texttt{scripts/stage2\_technical\_indicators.py}, producing ten
+additional engineered columns per instrument and twenty-eight new
+features in total.
+
+\begin{itemize}
+\item \textbf{Impulse MACD} (length 34, signal 9): a smoothed momentum
+  oscillator with a histogram and signal line.
+\item \textbf{SuperTrend} (period 7, multiplier 3.0): a trailing-stop
+  trend filter encoded explicitly as $+1$, $-1$, or $0$ to preserve
+  the warmup-period state.
+\item \textbf{Squeeze Momentum} (Bollinger versus Keltner channel,
+  conv 50, length 20): the squeeze correlation index.
+\item \textbf{True Strength Index} (fast 13, slow 25, signal 13): a
+  double-smoothed momentum oscillator with a signal line.
+\item \textbf{Velocity} (lookback 14, EMA 9): rate-of-change indicator
+  with smoothing.
+\end{itemize}
+
+These were sourced from \texttt{2013-01-01} to give 52 weeks of
+warmup so that no leading NaN values bleed into the analysis window
+that begins in February 2014.
+
+\subsection{Curated NLP corpus of policy events}
+
+The third data source is a hand-curated corpus of seventy-five Indian
+monetary-policy events spanning February 2014 to August 2024,
+constructed in \texttt{scripts/stage6\_news\_nlp.py}. Each event carries a
+title, an English description, an event category (rate decision,
+liquidity, structural, external, fiscal, or crisis), a sentiment score
+in $[-1, +1]$, and an impact level. Source material was drawn from RBI
+press releases, Bloomberg News, and Reuters coverage of MPC meetings
+and inter-meeting actions.
+
+\begin{warningbox}
+This is a domain-expert labelled corpus, not a scraped news feed, and
+is honestly framed as such throughout the report. The deliberate choice
+to curate rather than scrape was driven by the need for clean, untyped
+sentiment on a small number of high-impact events; an automated FinBERT
+pipeline over five years of headlines is identified as future work in
+Section~\ref{sec:limitations}.
+\end{warningbox}
+
+\subsection{Cross-domain combination, in line with NDAP guidance}
+
+The project specification explicitly encourages combining datasets
+across domains. The master panel does so by design: the eight NDAP
+tables cover four distinct administrative domains (rates, balance
+sheet, debt markets, inflation), and the Yahoo Finance and curated
+news data add two more (capital markets and policy news). Together
+these reflect the real-world mechanism by which WACMR is determined,
+namely as the equilibrium outcome of five forces acting in parallel
+rather than as a function of any single instrument.

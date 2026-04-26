@@ -1,0 +1,36 @@
+flowchart LR
+    classDef gh fill:#1A1A2E,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef vercel fill:#4D96FF,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef render fill:#4ECDC4,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef store fill:#FFE66D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef ai fill:#FFD93D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef cron fill:#FF6B6B,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+
+    subgraph CI ["GitHub"]
+        GH["Repo<br/>main branch"]:::gh
+        WF["GitHub Actions<br/>keep-warm cron<br/>every 10 minutes"]:::cron
+    end
+
+    subgraph V ["Vercel"]
+        VB["Build<br/>Next.js 16"]:::vercel
+        VE["Edge runtime plus<br/>API rewrites"]:::vercel
+        VURL["dsm-project-phi<br/>vercel app"]:::vercel
+    end
+
+    subgraph R ["Render"]
+        RB["Build<br/>pip install<br/>backend requirements"]:::render
+        RS["Uvicorn web service<br/>FastAPI"]:::render
+        RD["dsm project db<br/>plus saved model<br/>checked into image"]:::store
+        RURL["wacmr-api<br/>onrender com"]:::render
+    end
+
+    subgraph G ["External"]
+        GAI["Gemini 2.5 Flash<br/>Google AI Studio"]:::ai
+    end
+
+    GH --> VB --> VE --> VURL
+    GH --> RB --> RS --> RURL
+    RS --> RD
+    VE -->|slash api proxy| RURL
+    RS -->|streaming| GAI
+    WF -->|HTTPS health ping| RURL

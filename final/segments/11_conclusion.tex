@@ -1,0 +1,51 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This project asks whether India's overnight call-money rate can be
+predicted at the weekly horizon from open public data, what drives
+the prediction, and what the answer means for monetary policy
+practice. The headline numbers are clean: 545 weekly observations
+across 117 features assembled from ten public sources, two distinct
+monetary regimes identified by K-Means at silhouette 0.4238, and a
+walk-forward XGBoost forecast with RMSE 0.1019 (about ten basis
+points) and 70.9\% directional accuracy across 389 out-of-sample test
+weeks.
+
+The substantive findings are stronger than the numbers alone suggest.
+First, the structural break in early 2020 is real, persistent, and
+visible in unsupervised clustering without any human labelling of
+dates. Second, the policy corridor (Repo, Reverse Repo, MSF) plus the
+autoregressive lags of WACMR account for essentially all the
+predictive power; the twenty-eight equity and currency features added
+through Yahoo Finance and custom technical indicators do not
+materially help. Third, the model's tail errors are not driven by
+predictable seasonal calendar pressure, which it learns well, but by
+a small number of unsignalled inter-meeting policy actions, which by
+construction it cannot.
+
+The translation of these findings into action is straightforward. RBI
+liquidity managers should monitor the WACMR-Repo spread as a
+real-time barometer; treasury desks should size positions to the
+model's regime confidence; equity and forex desks should stop
+treating Nifty 50 and USD/INR technical indicators as inputs to
+overnight-rate forecasts; and NDAP should publish weekly T-Bill
+cut-off yields as a dedicated series.
+
+Beyond the analytical findings, the project ships a fully deployed
+interactive system. A Next.js dashboard on Vercel, a FastAPI backend
+on Render with a Gemini 2.5 Flash function-calling agent, a
+counterfactual simulator with a 26-second to 50-millisecond cache
+optimisation, and a long-form blog with a live report. The system
+runs on free-tier infrastructure, passes every Playwright audit page
+with zero console errors, and serves the underlying data through a
+typed REST API that any other researcher can build on.
+
+Every figure in this report is reproducible from the code committed
+to the repository. The pipeline stages are numbered, idempotent, and
+deterministic. The SQLite database and the saved model artefacts are
+committed alongside the code, so an evaluator can reproduce the
+analysis without re-running the pipeline at all. The hope is that
+this combination of substantive findings, working software, and full
+reproducibility makes the project useful as both a research artefact
+and a starting point for further work on Indian monetary-policy
+analytics.

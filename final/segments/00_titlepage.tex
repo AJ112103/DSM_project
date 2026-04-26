@@ -1,0 +1,87 @@
+% =====================================================================
+%  TITLE PAGE
+% =====================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\vspace*{1.4cm}
+
+{\Huge\bfseries\color{Slate} Predicting India's Weighted\\Average Call Money Rate\par}
+\vspace{0.45em}
+{\Large\color{Slate} An End-to-End Data Science Project on RBI NDAP and\\Market Data, with a Live Dashboard, Counterfactual Simulator,\\and AI-Powered Data Agent\par}
+
+\vspace{1.0em}
+{\large\bfseries Aamer Jalan and Arnav Goyal\par}
+{\large Ashoka University, Data Science and Management\par}
+{\normalsize \today\par}
+
+\vspace{1.2em}
+\noindent\textbf{\color{Slate}Summary.}
+This report documents an end-to-end data science investigation into the
+Weighted Average Call Money Rate (WACMR), the operational target of the
+Reserve Bank of India's (RBI) Liquidity Adjustment Facility and the
+cleanest market-revealed signal of overnight rupee liquidity. Ten
+public datasets were ingested, eight from the NDAP open-data API and
+two from Yahoo Finance, then aligned onto a canonical Friday weekly
+grid spanning February 2014 to July 2024. The resulting panel of 545
+observations across 117 features was stored in SQLite and analysed
+through three complementary lenses, namely unsupervised regime
+discovery via PCA and K-Means, supervised forecasting via walk-forward
+XGBoost with SHAP interpretability, and a domain-curated NLP corpus of
+seventy-five RBI policy events. The findings are deployed as a live,
+publicly accessible web application that includes a policy
+counterfactual simulator and a Gemini-powered data agent.
+
+\vspace{0.6em}
+\noindent\textbf{\color{Slate}Project highlights.}
+\begin{center}
+\statcard{545}{weeks of weekly\\macro data}\hfill
+\statcard{117}{engineered\\features}\hfill
+\statcard{10}{data\\sources}\hfill
+\statcard{70.9\%}{directional\\accuracy}\hfill
+\statcard{75}{curated\\policy events}
+\end{center}
+
+\vspace{0.8em}
+\noindent
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\linewidth}{@{}p{0.32\linewidth} Y@{}}
+\toprule
+\rowcolor{SoftGray}\textbf{\color{Slate}Data scope} &
+February 2014 to July 2024, weekly Friday-aligned panel,
+545 rows by 119 columns in SQLite, target variable
+\texttt{target\_wacmr} (RBI \texttt{rates\_I7496\_26}). \\
+\rowcolor{TealTint}\textbf{\color{Slate}Analytical methods} &
+PCA with 90.4\% variance retention (14 components), K-Means with K=2 (silhouette 0.4238),
+walk-forward expanding-window XGBoost over 389 test steps, SHAP
+TreeExplainer, and a manually curated NLP event corpus. \\
+\rowcolor{SoftGray}\textbf{\color{Slate}Headline result} &
+Baseline XGBoost achieves RMSE 0.1019 (about ten basis points) and 70.9\%
+directional accuracy. None of 28 equity and forex features rank in the
+top 15 SHAP drivers, confirming that WACMR is purely corridor-bound at
+the weekly horizon. \\
+\rowcolor{TealTint}\textbf{\color{Slate}Live system} &
+Next.js front-end on Vercel, FastAPI backend on Render, Gemini 2.5 Flash
+function-calling agent over the dataset, and a real-time policy
+counterfactual slider with cached inference (26 seconds compressed to
+roughly 50 ms). \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1.0em}
+\noindent\textbf{\color{Slate}Public deployment.}\\[2pt]
+\noindent\hspace{0.3em}\textbf{Dashboard and blog:} \url{https://dsm-project-phi.vercel.app}\\
+\noindent\hspace{0.3em}\textbf{API and agent:} \url{https://wacmr-api.onrender.com}\\
+\noindent\hspace{0.3em}\textbf{Source repository:} \url{https://github.com/AJ112103/DSM_project}
+
+\vfill
+\noindent\textit{\small \color{Slate} All figures cited in this report are reproducible from the
+code committed to the repository. Pipeline stages are numbered
+\texttt{stage1\_*} through \texttt{stage6\_*} and are idempotent.}
+\end{titlepage}
+
+% TOC on page 2
+\setcounter{page}{2}
+\hypersetup{linkcolor=Slate}
+{\color{Slate}\tableofcontents}
+\hypersetup{linkcolor=Teal}
+\clearpage

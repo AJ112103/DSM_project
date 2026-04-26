@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant F as Next.js Agent UI
+    participant B as FastAPI agent router
+    participant H as History store
+    participant G as Gemini 2.5 Flash
+    participant T as Tool registry<br/>7 typed functions
+    participant D as SQLite plus saved model
+
+    U->>F: Question, e.g. "what drives WACMR<br/>in tightening regime?"
+    F->>B: POST slash api slash agent slash chat
+    B->>H: Load session history
+    B->>G: System prompt plus history plus tools
+    activate G
+    G-->>B: Function call e.g. get_regime_stats
+    deactivate G
+    B->>T: Dispatch run_sql or get_shap_contributions<br/>or run_counterfactual or 4 others
+    T->>D: Read SHAP CSV plus query master table
+    D-->>T: Result row set
+    T-->>B: Structured tool result
+    B->>G: Append tool result to history
+    activate G
+    G-->>B: Either next function call<br/>or final natural language answer
+    deactivate G
+    B->>H: Persist updated history
+    B-->>F: Server-Sent Events stream<br/>tokens plus tool blocks
+    F-->>U: Render answer plus tool invocation chips
+
+    Note over B,G: Loop guard, max 6 iterations<br/>then forced final answer
+    Note over T: Function schemas<br/>auto-generated from Python type hints

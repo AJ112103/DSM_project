@@ -1,0 +1,50 @@
+flowchart TB
+    classDef edge fill:#FF6B6B,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef ui fill:#4D96FF,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef api fill:#FFE66D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef ml fill:#4ECDC4,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef db fill:#A8E6CF,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef ai fill:#FFD93D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+
+    subgraph CLIENT ["Browser"]
+        U["User<br/>desktop or mobile"]:::edge
+    end
+
+    subgraph FRONTEND ["Vercel : Next.js 16 + React 19"]
+        F1["10 pages<br/>Overview, Explore, Dashboard,<br/>Regimes, Forecast, Simulate,<br/>News, Agent, Blog, Report"]:::ui
+        F2["TanStack Query cache<br/>Plotly.js charts<br/>API rewrites slash api"]:::ui
+        F3["Slider, blog scroll-spy TOC,<br/>floating Agent sheet"]:::ui
+    end
+
+    subgraph BACKEND ["Render : FastAPI + Uvicorn"]
+        B1["Routers : data, analytics,<br/>forecast, simulate, news, agent"]:::api
+        B2["GZip middleware<br/>CORS env var allowlist"]:::api
+        B3["Cache layer<br/>26 s counterfactual<br/>becomes 50 ms after first call"]:::api
+    end
+
+    subgraph MODELS ["Saved model artefacts"]
+        M1["xgb model.json<br/>400 trees, depth 4"]:::ml
+        M2["SHAP values matrix<br/>545 x 117"]:::ml
+        M3["PCA coords plus<br/>K-Means centroids"]:::ml
+    end
+
+    subgraph DATA ["Persistent data"]
+        D1[("dsm project.db<br/>SQLite, 577 KB")]:::db
+        D2["events.json<br/>75 curated events"]:::db
+    end
+
+    subgraph LLM ["External LLM"]
+        G1["Gemini 2.5 Flash<br/>Google AI Studio<br/>function calling"]:::ai
+    end
+
+    U -->|HTTPS| F1
+    F1 --> F2 --> F3
+    F2 -->|slash api proxy| B1
+    B1 --> B2 --> B3
+    B3 --> M1
+    B3 --> M2
+    B3 --> M3
+    B1 --> D1
+    B1 --> D2
+    B1 -->|streaming SSE| G1
+    G1 -->|tool calls| B1

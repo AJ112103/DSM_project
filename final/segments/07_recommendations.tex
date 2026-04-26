@@ -1,0 +1,103 @@
+\section{Recommendations}
+\label{sec:recommendations}
+
+The project guidelines pose a simple closing question: what should be
+done differently based on the evidence? The answer is grouped into
+four audiences, each with a single, narrowly scoped recommendation
+and the specific number from the analysis that justifies it.
+
+\subsection{For RBI liquidity managers: monitor the WACMR-Repo
+spread as a real-time barometer}
+
+\textbf{Evidence.} The engineered \texttt{spread\_wacmr\_minus\_repo}
+is the fourth-ranked SHAP feature, with mean absolute SHAP 0.0725, a
+larger predictive weight than the MSF Rate itself (0.0585). In
+Regime 1 (Accommodation), the average spread is $-0.19$ percentage
+points; persistent positive spreads above $+0.10$ percentage points
+have historically preceded liquidity-deficit interventions.
+
+\textbf{Recommendation.} Operationalise a real-time WACMR-Repo
+spread dashboard inside the RBI Financial Markets Operations
+Department, with a soft alert when the spread exceeds $+0.10$
+percentage points for three consecutive weeks and a hard alert at
+$+0.25$ percentage points. The model treats this single engineered
+spread as more informative than any individual corridor rate. A
+dashboard is cheap to build (the underlying data is already public)
+and would surface emerging liquidity stress earlier than the current
+monthly review cycle.
+
+\subsection{For institutional bond and money-market desks: size
+positions to model regime confidence}
+
+\textbf{Evidence.} The walk-forward XGBoost achieves 70.9\%
+directional accuracy and RMSE 0.1019 across 389 out-of-sample weeks.
+The regime-conditional SHAP analysis shows that absolute SHAP
+magnitudes are roughly twice as large in the tightening regime as in
+the accommodation regime, which means the model is materially more
+confident inside Regime 1 than inside Regime 0.
+
+\textbf{Recommendation.} Use the model's directional forecast as a
+trade signal, but size positions proportional to the cluster
+distance ratio (\texttt{cluster\_dist\_0 / cluster\_dist\_1}). Near
+the regime boundary, where the ratio is close to one, reduce
+position sizing and widen bid-offer spreads. Deep inside either
+regime, scale up to the desk risk limit. This is a simple,
+implementable adjustment that uses the model's own implicit
+confidence rather than treating every prediction as equally reliable.
+
+\subsection{For equity and forex desk practitioners: stop using
+equity and currency momentum as a WACMR input}
+
+\textbf{Evidence.} Adding twenty-eight equity and currency features
+(Nifty 50 OHLCV, USD/INR OHLCV, and ten custom technical indicators
+across both instruments) did not move any feature into the SHAP top
+15. The first market feature to appear is at rank 23 with mean
+absolute SHAP 0.0038, two orders of magnitude smaller than the
+corridor rates. This is a null result, but it is a strong null
+result: the model had every opportunity to learn from these features
+and chose not to.
+
+\textbf{Recommendation.} Practitioners who maintain technical
+indicators on Nifty 50 or USD/INR for the purpose of forecasting
+overnight call-money rates should reallocate that screen real estate.
+Whatever transmission mechanism connects equity and currency markets
+to overnight rupee liquidity operates at lower frequency than the
+weekly signal studied here, so monthly or quarterly reviews of these
+relationships make more sense than continuous monitoring.
+
+\subsection{For NDAP and the open-data community: publish T-Bill
+auction cut-off yields as a dedicated weekly series}
+
+\textbf{Evidence.} The \texttt{Treasury\_Bills\_Details.csv} table on
+NDAP labels column \texttt{I7504\_10} as a yield metric, but the
+actual values in the downloaded CSV are outstanding amounts in INR
+crore. The 91-day, 182-day, and 364-day cut-off yields are widely
+referenced in RBI publications but are not available as a
+machine-readable weekly series through the open API.
+
+\textbf{Recommendation.} Adding a confirmed, API-accessible weekly
+yield series for the three T-Bill tenors is the single highest-value
+data addition NDAP could make for fixed-income research on Indian
+markets. The same recommendation applies to intraday LAF utilisation
+data, which would let researchers separate intra-week stress events
+that the weekly aggregation in this project necessarily masks.
+
+\subsection{For policy communication and education: open-data
+dashboards demonstrably work}
+
+\textbf{Evidence.} The interactive system documented in
+Section~\ref{sec:system} (a public dashboard, a counterfactual
+simulator, and an LLM-powered data agent) is built entirely on open
+NDAP and Yahoo Finance data, runs on free-tier infrastructure
+(Vercel and Render), and serves all 545 weeks of the panel through a
+single public URL. Production performance metrics
+(Section~\ref{sec:qa}) show sub-second median page load times across
+ten pages on both desktop and mobile.
+
+\textbf{Recommendation.} Public-facing tools that explain the
+mechanics of monetary-policy transmission do not require private data
+or expensive infrastructure. The implication for RBI's communications
+team and for academic researchers is that lightweight open-data
+dashboards can be deployed within a day or two of analytical work and
+provide a far more direct way to communicate quantitative findings to
+non-specialist audiences than a written research note alone.

@@ -1,0 +1,48 @@
+flowchart TB
+    classDef src fill:#FF6B6B,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef raw fill:#FFE66D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef trans fill:#4ECDC4,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef out fill:#4D96FF,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef store fill:#A8E6CF,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+
+    subgraph SOURCES ["External sources"]
+        S1["NDAP API<br/>Reserve Bank of India<br/>open data"]:::src
+        S2["Yahoo Finance<br/>via yfinance"]:::src
+        S3["Domain expert<br/>RBI press releases<br/>Bloomberg, Reuters"]:::src
+    end
+
+    subgraph RAW ["Raw CSV"]
+        R1["8 NDAP CSV files<br/>data slash"]:::raw
+        R2["Nifty50 weekly OHLCV<br/>USD INR weekly OHLCV<br/>data underscore 1 slash"]:::raw
+        R3["75 curated events<br/>backend slash nlp slash<br/>news data slash events.json"]:::raw
+    end
+
+    subgraph PIPE ["Pipeline transforms"]
+        T1["stage1 ingest<br/>auto pagination"]:::trans
+        T2["stage 1b indicators<br/>ImpulseMACD, SuperTrend,<br/>Squeeze, TSI, Velocity"]:::trans
+        T3["stage2 alignment<br/>Friday snap<br/>75 percent density rule<br/>forward fill CPI"]:::trans
+        T4["stage3 PCA plus K-Means"]:::trans
+        T5["stage4 walk-forward<br/>XGBoost plus SHAP"]:::trans
+        T6["stage6 NLP<br/>weekly aggregation"]:::trans
+    end
+
+    subgraph STORE ["Persistent artefacts"]
+        D1[("dsm project.db<br/>Weekly Macro Master<br/>545 rows, 119 cols")]:::store
+        D2["backend slash ml slash<br/>saved model slash<br/>xgb model.json plus<br/>SHAP plus walkforward"]:::store
+        D3["visualizations slash<br/>12 publication charts"]:::store
+    end
+
+    O1["FastAPI service<br/>and Gemini agent"]:::out
+
+    S1 --> R1 --> T1 --> T3
+    S2 --> R2 --> T2 --> T3
+    S3 --> R3 --> T6
+    T3 --> D1
+    D1 --> T4 --> D1
+    D1 --> T5 --> D2
+    D1 --> T6 --> D1
+    T4 --> D3
+    T5 --> D3
+    T6 --> D3
+    D1 --> O1
+    D2 --> O1

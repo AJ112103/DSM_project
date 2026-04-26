@@ -1,0 +1,155 @@
+\section{What the Data Says About India's Overnight Liquidity}
+\label{sec:results}
+
+This section interprets the headline findings from
+Section~\ref{sec:methods} as substantive statements about the current
+state of India's overnight call-money market. Five claims follow,
+each grounded directly in a specific number or figure from the
+analysis.
+
+\subsection{The 2020 break is structural, not transitional}
+
+The K-Means clustering with $K=2$ partitions the 545-week panel
+cleanly into a pre-2020 segment of 315 weeks and a post-2020 segment
+of 230 weeks (Section~\ref{sec:methods-regimes},
+Figure~\ref{fig:regime-state-machine}). The cluster boundary is not
+gradual: the silhouette score drops sharply once $K$ goes above 2,
+and the PCA projection in Figure~\ref{fig:pca-scatter} shows two
+clusters separated along PC1 with a narrow transition band only at
+the COVID weeks themselves. This is empirical evidence that the post-
+2020 monetary regime is structurally distinct from the pre-2020
+regime, and that even the 2022--23 hiking cycle continues to operate
+inside the new framework rather than reverting to the old one.
+
+The 1.72 percentage-point gap in mean WACMR between the two regimes
+(6.528\% versus 4.809\%) is not a transient feature of any one year.
+Within the post-2020 regime, mean WACMR rose from 3.5\% in 2020 to
+6.7\% in early 2024, but the cluster assignment did not flip.
+Mechanically, what changed in 2020 was the introduction of Variable
+Rate Repo and Variable Rate Reverse Repo as RBI's primary liquidity
+tools; the persistence of the regime label through 2024 reflects the
+fact that these tools remain in active use, and that the operational
+playbook has not reverted.
+
+\subsection{The corridor explains almost everything; equity and forex
+explain almost nothing}
+
+The SHAP analysis (Table~\ref{tab:shap-top15}) is unambiguous on
+this point. The top five drivers of weekly WACMR forecasts are
+\texttt{target\_lag1} (mean $|$SHAP$|$ 0.48959), \texttt{repo\_lag1}
+(0.21053), the current Repo Rate (0.19459), the engineered
+\texttt{spread\_wacmr\_minus\_repo} (0.07247), and the MSF Rate
+(0.05847). These five features are either direct policy-corridor rates
+or short-lag autoregressive functions of WACMR itself. Their combined
+mean absolute SHAP value of 1.02565 dwarfs the contribution of every
+other feature.
+
+By contrast, the twenty-eight equity and currency features added
+through the supplemental Yahoo Finance pipeline (Nifty 50 OHLCV,
+USD/INR OHLCV, plus five custom technical indicators per instrument)
+do not appear in the top 15. Their cumulative contribution is below
+the contribution of any single corridor feature. The first market
+feature to appear, \texttt{usdinr\_ImpulseMACD}, sits at rank 23 with
+mean $|$SHAP$|$ of 0.0038, which is two orders of magnitude smaller
+than the headline corridor features.
+
+\begin{finding}
+At the weekly horizon, India's call-money market is overwhelmingly
+LAF-corridor-bound. WACMR moves with the announced policy rate and
+its own recent history; it does not respond meaningfully to equity
+momentum, currency momentum, or any combination of technical indicators
+on those instruments. This is the central empirical claim of the
+report.
+\end{finding}
+
+\subsection{Forecasting is feasible to about ten basis points at a
+one-week horizon, but explicit regime tagging adds nothing}
+
+The walk-forward XGBoost achieves RMSE 0.1019 (about ten basis points
+on the WACMR scale) and 70.9\% directional accuracy across 389
+out-of-sample test weeks (Table~\ref{tab:perf}). Both numbers are
+high enough to be operationally useful for treasury hedging and
+overnight-fund positioning. RMSE of 0.1019 corresponds to a 95\%
+prediction interval of roughly $\pm 20$ basis points around the point
+forecast.
+
+The regime-aware variant, with two one-hot regime indicators and two
+PCA-space distance features added, performs marginally worse on RMSE
+(0.1044, $+2.5$\%) and identically on MAE and directional accuracy.
+This is a clean empirical refutation of hypothesis H2. The natural
+reading is that the lagged Repo Rate and the autoregressive lags of
+WACMR already encode whatever the K-Means regime label encodes;
+adding the explicit label introduces correlated noise without new
+information. The implication for downstream practitioners is that
+investing engineering effort in regime-tagging machinery is not the
+highest-value use of time. A simple feature set, kept clean, performs
+as well as a more elaborate one.
+
+\subsection{Tail errors come from policy discontinuities, not
+calendar pressure}
+
+The residual analysis in Figure~\ref{fig:residual-calendar} contains
+one of the more counterintuitive findings of the project. The
+calendar-event hypothesis, that financial-year end and the four
+advance-tax dates produce the model's worst weeks, is rejected. RMSE
+on the 66 calendar-event weeks is 0.0870, which is meaningfully
+better than the 0.1046 RMSE on the 323 non-event weeks. Ten years of
+training data is enough for the model to learn the seasonal pattern.
+
+The actual tail residuals concentrate on three families of events
+that have no historical analogue in training data:
+
+\begin{itemize}
+\item COVID emergency rate cuts in March--April 2020 and the COVID
+  second-wave peak in May 2021. The April 2020 prediction missed by
+  $-0.66$ percentage points, the largest single error in the
+  out-of-sample set.
+\item The surprise 40 basis-point inter-meeting Repo hike on 13 May
+  2022, which the model missed by $-0.42$ percentage points.
+\item The post-hike re-tightening shocks in 2022 (June, September,
+  October), which the model missed by 0.30 to 0.34 percentage points.
+\end{itemize}
+
+These are by definition not forecastable from historical features
+alone. They are unsignalled discretionary policy actions. Any
+forecasting effort that wants to handle them needs to inject an
+exogenous policy-action prior, for example a decision-day dummy
+based on the published MPC calendar.
+
+\subsection{The WACMR-Repo spread is a real-time liquidity barometer}
+
+The fourth-ranked SHAP feature is the engineered
+\texttt{spread\_wacmr\_minus\_repo}, with mean absolute SHAP 0.0725.
+The mean spread by regime tells a clear story: in Regime 1
+(Tightening) the spread averages roughly zero, whereas in Regime 0
+(Accommodation) it averages $-0.19$ percentage points, with WACMR
+sitting consistently below the policy Repo Rate. When the spread
+flips meaningfully positive (WACMR > Repo) for several consecutive
+weeks, it has historically preceded liquidity-deficit interventions.
+This is not a new observation in the academic literature, but the
+SHAP analysis quantifies the predictive weight: the spread is more
+informative than the MSF Rate itself.
+
+\subsection{Summary of evidence}
+
+Table~\ref{tab:hypothesis-results} summarises the verdict on each
+hypothesis stated in Section~\ref{sec:problem}.
+
+\begin{table}[H]
+\caption{Hypothesis verdicts at the end of the analysis.}
+\label{tab:hypothesis-results}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{SoftGray}{white}
+\begin{tabularx}{\linewidth}{@{} l c Y @{}}
+\toprule
+\rowcolor{Slate}\color{white}\textbf{Hypothesis} &
+\color{white}\textbf{Verdict} &
+\color{white}\textbf{Evidence} \\
+\midrule
+H1, regime structure exists & Supported & K-Means $K=2$, silhouette 0.4238, two non-overlapping regimes aligned with COVID. \\
+H2, regime labels improve forecasts & Rejected & Regime-aware RMSE 0.1044 vs baseline 0.1019 ($+2.5$\%); MAE and directional accuracy unchanged. \\
+H3, corridor rates dominate & Supported & Repo, Reverse Repo, and MSF together with the autoregressive lags occupy the entire SHAP top 15. \\
+H4, equity and forex add value & Rejected & None of 28 supplemental features cracks the SHAP top 15; first market feature ranks 23 with cumulative impact two orders of magnitude below the corridor. \\
+\bottomrule
+\end{tabularx}
+\end{table}

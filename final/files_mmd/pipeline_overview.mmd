@@ -1,0 +1,21 @@
+flowchart LR
+    classDef ingest fill:#FF6B6B,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef store fill:#FFE66D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef unsup fill:#4ECDC4,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef sup fill:#4D96FF,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef interp fill:#A8E6CF,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef nlp fill:#FFD93D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef serve fill:#6BCB77,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+
+    A["Stage 1<br/>NDAP API + Yahoo Finance<br/>10 raw datasets"]:::ingest
+    B["Stage 2<br/>Friday-aligned panel<br/>545 weeks x 119 cols<br/>SQLite"]:::store
+    C["Stage 3<br/>PCA then K-Means<br/>K=2, Silhouette 0.4643"]:::unsup
+    D["Stage 4<br/>Walk-forward XGBoost<br/>RMSE 0.1019, DA 70.9 percent"]:::sup
+    E["Stage 4b<br/>SHAP TreeExplainer<br/>top 15 corridor features"]:::interp
+    F["Stage 6<br/>NLP curated corpus<br/>75 policy events"]:::nlp
+    G["Stage 5<br/>Synthesis report"]:::serve
+    H["FastAPI plus Gemini agent<br/>Next.js dashboard<br/>live counterfactual"]:::serve
+
+    A --> B --> C --> D --> E --> G
+    B --> F --> G
+    G --> H

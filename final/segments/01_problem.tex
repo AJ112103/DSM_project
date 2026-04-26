@@ -1,0 +1,122 @@
+\section{Problem Statement and Objectives}
+\label{sec:problem}
+
+\subsection{Thematic domain and motivation}
+
+This project is situated in the financial-economics theme, specifically
+at the intersection of Indian monetary policy operations and applied
+machine learning on open public data. The Reserve Bank of India
+publishes a rich set of weekly statistical tables through the National
+Data and Analytics Platform (NDAP), covering the policy rate corridor,
+the central-bank balance sheet, and the short-term debt markets. These
+are the inputs that determine overnight rupee liquidity, and their
+combined behaviour shapes the cost of every short-tenor borrowing in
+the formal banking system.
+
+The Weighted Average Call Money Rate (WACMR) is the daily volume-weighted
+mean rate at which scheduled commercial banks borrow and lend overnight
+to one another in the call-money market. It is the operational target
+of the Liquidity Adjustment Facility (LAF), and any sustained deviation
+between WACMR and the policy Repo Rate is a real-time diagnostic of
+whether the corridor is binding. WACMR moves first when liquidity
+conditions tighten or loosen, before the broader rate term structure
+follows.
+
+\subsection{Why WACMR matters}
+
+WACMR sits at the head of the entire monetary transmission chain and
+carries direct, measurable consequences for three groups.
+
+\begin{itemize}
+\item \textbf{Reserve Bank of India.} The WACMR-Repo spread is the
+  primary signal of whether the announced policy stance is being
+  enforced in the market. Persistent positive spreads indicate
+  liquidity deficit and presage interventions through Variable Rate
+  Repo (VRR) auctions; persistent negative spreads indicate surplus
+  conditions and presage Variable Rate Reverse Repo (VRRR) operations.
+\item \textbf{Banks, mutual funds, and corporate treasuries.} Overnight
+  fund net asset values, money-market mutual fund returns, and the
+  duration risk on short-end bond portfolios all move with WACMR. A
+  forecast accurate to within roughly ten basis points is directly
+  actionable for intraday positioning and treasury hedging.
+\item \textbf{Macroeconomic researchers and policy analysts.}
+  Identifying the structural regime boundaries in India's liquidity
+  framework, in particular the pre-COVID and post-COVID periods,
+  provides quantitative evidence on how exogenous shocks shift the
+  monetary-transmission mechanism.
+\end{itemize}
+
+\subsection{The forecasting problem}
+
+WACMR is difficult to forecast with simple rules because it is the
+equilibrium outcome of five interacting channels operating on different
+frequencies. The five channels are the policy corridor (Repo, Reverse
+Repo, MSF), system liquidity (RBI balance sheet items, M3, reserve
+money), short-term instrument flows (Treasury Bills, G-Secs, Commercial
+Paper, Market Repo), the macro price environment (CPI indices), and
+exogenous market sentiment (equity and currency). The relative weights
+of these channels also change across structural regimes, which makes
+the problem non-stationary.
+
+\newpage
+
+\subsection{Hypotheses}
+
+Four hypotheses are tested in this report. Each is stated in advance,
+with the supervised and unsupervised stages designed to provide
+falsifiable evidence on each.
+
+\begin{enumerate}
+\item \textbf{H1 (regime structure).} India's weekly money-market data
+  contains at least two statistically distinct macroeconomic regimes,
+  identifiable by unsupervised clustering on RBI balance-sheet and
+  rate-corridor variables.
+\item \textbf{H2 (regime-aware forecasting).} Injecting regime labels
+  and centroid distances as features into an XGBoost regressor reduces
+  out-of-sample RMSE by at least fifteen percent relative to a baseline
+  model with no regime features.
+\item \textbf{H3 (corridor dominance).} The Repo, Reverse Repo, and MSF
+  rates are the dominant predictors in the supervised model, identified
+  by SHAP feature importance.
+\item \textbf{H4 (market sentiment marginal impact).} Adding twenty-eight
+  Nifty 50 and USD/INR features (OHLCV plus five custom technical
+  indicators per instrument) materially improves WACMR forecasting at
+  the weekly frequency.
+\end{enumerate}
+
+\subsection{Project objectives}
+
+The five objectives below map one-to-one onto the five guidelines parts
+of the project specification.
+
+\begin{enumerate}
+\item Build a clean, density-filtered, Friday-aligned weekly macro
+  panel from the NDAP API and supplemental market data, persisted in a
+  queryable SQLite database.
+\item Discover statistically distinct monetary regimes from the data
+  alone using PCA and K-Means, and validate the result against known
+  macroeconomic events.
+\item Forecast WACMR one week ahead using walk-forward XGBoost
+  regression, with SHAP interpretability, and quantify whether
+  regime-awareness improves forecasting accuracy.
+\item Translate the technical findings into concrete, evidence-grounded
+  policy and trading recommendations.
+\item Ship the analysis as a live, interactive system that the user can
+  dogfood, including a policy counterfactual simulator and a
+  Gemini-powered data agent that can answer free-form questions over
+  the dataset.
+\end{enumerate}
+
+The remaining sections of this report follow this structure. Section
+\ref{sec:data} documents the ten datasets and their sourcing. Section
+\ref{sec:eda} presents the exploratory data analysis. Section
+\ref{sec:database} details the database design. Section
+\ref{sec:methods} sets out the methods, including the regime-discovery
+algorithm, the walk-forward forecasting protocol, and the NLP event
+corpus. Section \ref{sec:results} interprets the findings as evidence
+about the current state of India's overnight liquidity. Section
+\ref{sec:recommendations} translates these findings into actionable
+recommendations. Sections \ref{sec:system} and \ref{sec:qa} cover the
+bonus interactive system, deployment, and quality assurance. Sections
+\ref{sec:limitations} and \ref{sec:conclusion} close out the limitations
+and the headline takeaway.

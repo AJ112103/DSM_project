@@ -1,0 +1,78 @@
+erDiagram
+    WEEKLY_MACRO_MASTER ||--o| RATES_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| BALANCE_SHEET_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| DEBT_MARKETS_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| INFLATION_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| MARKETS_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| ENGINEERED_GROUP : contains
+    WEEKLY_MACRO_MASTER ||--o| REGIME_GROUP : contains
+
+    WEEKLY_MACRO_MASTER {
+        text week_date PK "Friday aligned weekly index, 545 rows"
+        real target_wacmr "Weighted Avg Call Money Rate, percent"
+        int regime_label "K-Means cluster 0 or 1"
+    }
+
+    RATES_GROUP {
+        real rates_I7496_5 "CRR, percent"
+        real rates_I7496_6 "SLR, percent"
+        real rates_I7496_17 "Repo Rate, percent"
+        real rates_I7496_18 "Reverse Repo Rate, percent"
+        real rates_I7496_20 "MSF Rate, percent"
+        real rates_I7496_21 "Bank Rate, percent"
+        real rates_I7496_27 "CBLO Tri-Repo Rate, percent"
+        real rates_I7496_28 "Market Repo Rate, percent"
+        real rates_I7496_29 "CD Rate, percent"
+        real rates_I7496_30 "CP Rate, percent"
+        real rates_I7496_33_35 "T-Bill yields 91 182 364 day"
+        text source "RBI Ratios and Rates, weekly"
+    }
+
+    BALANCE_SHEET_GROUP {
+        real la_I7492_x "22 columns, RBI assets and liabilities"
+        real agg_I7494_5 "M3 Money Supply, INR crore"
+        real agg_I7494_6 "M3 Growth Index"
+        real agg_I7494_7 "Reserve Money, INR crore"
+        text source "RBI Liabilities Assets and Aggregates"
+    }
+
+    DEBT_MARKETS_GROUP {
+        real cp_I7505_5_8 "CP outstanding, subscribed, matured"
+        real tb_I7504_x "12 cols, 91 182 364 day T-Bills"
+        real repo_I7498_x "12 cols, market repo volumes"
+        real gsec_I7503_x "5 cols, G-Sec issuance and yield"
+        text source "NDAP debt market tables"
+    }
+
+    INFLATION_GROUP {
+        real cpi_I7500_4 "CPI Industrial Workers"
+        real cpi_I7500_9 "CPI Headline"
+        real cpi_I7500_10 "CPI Food"
+        real cpi_I7500_11 "CPI Core"
+        real cpi_I7500_12 "CPI Fuel and Light"
+        text source "Major Price Indices, monthly forward filled"
+    }
+
+    MARKETS_GROUP {
+        real nifty_OHLCV "Nifty 50 weekly OHLCV"
+        real nifty_indicators "ImpulseMACD, SuperTrend, Squeeze, TSI, Velocity"
+        real usdinr_OHLCV "USD INR weekly OHLCV"
+        real usdinr_indicators "5 technical indicators"
+        text source "Yahoo Finance via yfinance"
+    }
+
+    ENGINEERED_GROUP {
+        real target_lag_1_2_4 "WACMR autoregressive lags"
+        real repo_lag_1_2_4 "Repo Rate lags"
+        real spread_wacmr_minus_repo "Liquidity proxy"
+        real spread_msf_minus_repo "Corridor width"
+        real spread_cp_minus_repo "Credit premium"
+        text source "Computed in stage 4"
+    }
+
+    REGIME_GROUP {
+        int regime_label "K-Means cluster, 0 Tightening, 1 Accommodation"
+        real cluster_dist_0 "Distance to centroid 0 in PCA space"
+        real cluster_dist_1 "Distance to centroid 1 in PCA space"
+        text source "Computed in stage 3"
+    }

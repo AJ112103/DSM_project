@@ -1,0 +1,23 @@
+stateDiagram-v2
+    direction LR
+
+    classDef tightenStyle fill:#FFE66D,color:#1A1A2E,font-weight:bold,stroke:#16324F,stroke-width:2px
+    classDef accommodateStyle fill:#4ECDC4,color:#1A1A2E,font-weight:bold,stroke:#16324F,stroke-width:2px
+
+    state "Regime 0<br/>Tightening<br/>308 weeks<br/>Feb 2014 to Feb 2020<br/>Avg WACMR 6.564 pct<br/>Avg Repo 6.624 pct" as R0
+    state "Regime 1<br/>Accommodation<br/>237 weeks<br/>Jan 2020 to Jul 2024<br/>Avg WACMR 4.814 pct<br/>Avg Repo 5.120 pct" as R1
+
+    [*] --> R0
+    R0 --> R1 : COVID 19 shock<br/>February 2020<br/>VRR plus VRRR launch
+    R1 --> R1 : 2022 hike cycle stays in<br/>accommodation framework<br/>cluster persistence
+    R1 --> [*]
+
+    note right of R0
+        Regime 0 contains :<br/>2013 taper rebound,<br/>demonetisation 2016,<br/>2018 NBFC squeeze,<br/>pre COVID gradual easing
+    end note
+
+    note right of R1
+        Regime 1 spans :<br/>COVID emergency cuts,<br/>SDF launch April 2022,<br/>2022 to 23 hikes,<br/>extended pause 2024
+    end note
+
+    classDef _ default

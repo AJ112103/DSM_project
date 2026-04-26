@@ -1,0 +1,248 @@
+% =====================================================================
+%  PREAMBLE
+%  WACMR DSM Final Project Report
+% =====================================================================
+\documentclass[11pt]{article}
+
+% --- Page geometry, fonts, encoding ---
+\usepackage[a4paper,margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[strings]{underscore}
+\usepackage{textcomp}
+
+% --- Tables and arrays ---
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage[table]{xcolor}
+
+% --- Lists, links, math ---
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{pifont}
+
+% --- Figures, code, colour boxes ---
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage[most]{tcolorbox}
+
+% --- Headers and footers ---
+\usepackage{fancyhdr}
+
+% =====================================================================
+%  COLOUR PALETTE
+% =====================================================================
+\definecolor{Slate}{HTML}{16324F}
+\definecolor{Teal}{HTML}{0B7285}
+\definecolor{TealTint}{HTML}{E6F4F1}
+\definecolor{Amber}{HTML}{B26A00}
+\definecolor{AmberTint}{HTML}{FFF4D6}
+\definecolor{Rose}{HTML}{A61E4D}
+\definecolor{RoseTint}{HTML}{FFF0F6}
+\definecolor{Forest}{HTML}{2B6E3F}
+\definecolor{ForestTint}{HTML}{E6F4EA}
+\definecolor{SoftGray}{HTML}{F5F7FA}
+\definecolor{LineGray}{HTML}{D9E2EC}
+\definecolor{CodeBG}{HTML}{F8F9FB}
+\definecolor{Ink}{HTML}{1A1A2E}
+
+% =====================================================================
+%  HYPERREF
+% =====================================================================
+\hypersetup{
+  colorlinks=true,
+  linkcolor=Teal,
+  urlcolor=Teal,
+  citecolor=Teal,
+  pdftitle={Predicting India's Weighted Average Call Money Rate: A Data Science Project on RBI NDAP and Market Data},
+  pdfauthor={Aamer Jalan and Arnav Goyal}
+}
+
+% =====================================================================
+%  TYPOGRAPHY
+% =====================================================================
+\setlist[itemize]{leftmargin=1.3em, itemsep=0.25em, topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=0.3em, topsep=0.3em}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.18}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+\captionsetup{
+  font={small},
+  labelfont={bf,color=Slate},
+  textfont={it},
+  labelsep=period,
+  skip=6pt
+}
+
+% =====================================================================
+%  SECTION HEADING COLOURS
+% =====================================================================
+\usepackage{titlesec}
+\titleformat{\section}
+  {\color{Slate}\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\color{Slate}\large\bfseries}{\thesubsection}{0.55em}{}
+\titleformat{\subsubsection}
+  {\color{Teal}\normalsize\bfseries}{\thesubsubsection}{0.5em}{}
+
+% =====================================================================
+%  HEADER / FOOTER
+% =====================================================================
+\setlength{\headheight}{22pt}
+\addtolength{\topmargin}{-10pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{Slate}\textsc{WACMR Analytics}}
+\fancyhead[R]{\small\color{Slate}\textit{DSM Final Project}}
+\fancyfoot[C]{\small\color{Slate}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{LineGray}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrulewidth}{0pt}
+
+% =====================================================================
+%  STATCARD MACRO (title page)
+% =====================================================================
+\newcommand{\statcard}[2]{%
+  \fcolorbox{LineGray}{SoftGray}{%
+    \begin{minipage}[c][1.55cm][c]{0.175\linewidth}
+      \centering
+      {\color{Slate}\bfseries\large #1}\\[-1pt]
+      {\footnotesize #2}
+    \end{minipage}
+  }%
+}
+
+% =====================================================================
+%  CALLOUT BOXES
+% =====================================================================
+\newtcolorbox{finding}[1][]{%
+  enhanced,
+  colback=TealTint,
+  colframe=Teal,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  fonttitle=\bfseries\color{Slate},
+  title={Key finding},
+  #1
+}
+\newtcolorbox{warningbox}[1][]{%
+  enhanced,
+  colback=AmberTint,
+  colframe=Amber,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  fonttitle=\bfseries\color{Slate},
+  title={Caveat},
+  #1
+}
+\newtcolorbox{methodbox}[1][]{%
+  enhanced,
+  colback=SoftGray,
+  colframe=Slate,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  fonttitle=\bfseries\color{Slate},
+  title={Method},
+  #1
+}
+
+% =====================================================================
+%  LISTING STYLES (Python, SQL, Bash, JSON, Mermaid, TypeScript)
+% =====================================================================
+\lstdefinestyle{python}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{Amber},
+  breaklines=true, breakatwhitespace=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=4,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em,
+  language=Python,
+  morekeywords={self,True,False,None,as,with,yield,lambda,import,from,def,class,return,for,in,if,else,elif,try,except,finally,raise,pass,break,continue,and,or,not,is,print,async,await,match,case}
+}
+\lstdefinestyle{sql}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{Amber},
+  breaklines=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=2,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em,
+  language=SQL,
+  morekeywords={WITH,RECURSIVE,JOIN,LEFT,RIGHT,INNER,OUTER,ON,GROUP,ORDER,BY,SELECT,FROM,WHERE,LIMIT,OFFSET,AS,DESC,ASC,DISTINCT,CASE,WHEN,THEN,ELSE,END,COUNT,AVG,SUM,MIN,MAX,STDDEV,HAVING,UNION,ALL,IN,NOT,AND,OR,IS,NULL,NULLS,FIRST,LAST,OVER,PARTITION}
+}
+\lstdefinestyle{bash}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{Amber},
+  breaklines=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=2,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em,
+  language=bash,
+  morekeywords={uvicorn,latexmk,mmdc,pdflatex,npm,curl,jq,sqlite3}
+}
+\lstdefinestyle{json}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  stringstyle=\color{Amber},
+  commentstyle=\color{gray}\itshape,
+  breaklines=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=2,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em
+}
+\lstdefinestyle{mermaid}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{Amber},
+  breaklines=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=2,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em,
+  morekeywords={flowchart,graph,sequenceDiagram,erDiagram,stateDiagram,classDiagram,subgraph,end,participant,actor,activate,deactivate,Note,over,classDef,style,direction,LR,TD,RL,BT}
+}
+\lstdefinestyle{tsx}{
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{Teal}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{Amber},
+  breaklines=true,
+  frame=single, rulecolor=\color{LineGray},
+  backgroundcolor=\color{CodeBG},
+  showstringspaces=false, tabsize=2,
+  xleftmargin=0.5em, framexleftmargin=0.5em,
+  aboveskip=0.6em, belowskip=0.4em,
+  morekeywords={const,let,var,function,return,export,import,from,interface,type,async,await,if,else,for,while,class,extends,implements,public,private,protected,readonly}
+}

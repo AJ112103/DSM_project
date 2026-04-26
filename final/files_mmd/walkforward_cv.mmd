@@ -1,0 +1,26 @@
+flowchart LR
+    classDef train fill:#4ECDC4,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef test fill:#FF6B6B,stroke:#16324F,stroke-width:2px,color:#FFFFFF,font-weight:bold
+    classDef step fill:#FFE66D,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+    classDef agg fill:#A8E6CF,stroke:#16324F,stroke-width:2px,color:#1A1A2E,font-weight:bold
+
+    subgraph SETUP ["Walk-forward expanding window setup"]
+        S0["Total panel : 545 weeks<br/>Min training : 156 weeks, 3 years<br/>Horizon : 1 week ahead<br/>Test steps : 389"]:::step
+    end
+
+    subgraph FOLDS ["Sample folds"]
+        T1["Train weeks 1 to 156"]:::train
+        P1["Test week 157"]:::test
+        T2["Train weeks 1 to 157"]:::train
+        P2["Test week 158"]:::test
+        TN["Train weeks 1 to 544"]:::train
+        PN["Test week 545"]:::test
+    end
+
+    subgraph METRIC ["Aggregate metrics"]
+        M["Concatenate 389 predictions<br/>then RMSE 0.1019, MAE 0.0646,<br/>Directional Accuracy 70.9 percent"]:::agg
+    end
+
+    S0 --> T1 --> P1 --> T2 --> P2
+    P2 -. iterate 387 more times .-> TN
+    TN --> PN --> M
