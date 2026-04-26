@@ -163,6 +163,25 @@ DSM_project/
 | News & NLP | `/news` | 75 curated policy events, sentiment timeline, category filters |
 | Report | `/report` | Full generated research report with TOC |
 
+## DSM Guidelines Coverage
+
+This project was structured against the DSM project expectations in `DSM Project - Guidelines and Expectations.pdf`.
+
+| Guideline area | How this project addresses it |
+| --- | --- |
+| Problem statement | Studies whether India's Weighted Average Call Money Rate (WACMR), the overnight interbank funding rate, can be understood and forecast one week ahead from monetary policy, liquidity, market, and event data. The objective is to explain transmission of RBI policy into actual overnight funding conditions and produce evidence-backed operational insights. |
+| Dataset identification | Uses 8 RBI/NDAP public datasets, Yahoo Finance weekly Nifty 50 and USD/INR series, and 75 curated public policy/news events. Raw sources are kept in `data/raw/ndap/` and `data/raw/yfinance/`; aligned analysis datasets are in `data/processed/`. |
+| Data exploration | The pipeline computes distributions, time-series plots, PCA projections, regime plots, event density, sentiment timeline, residual calendar, and SHAP visualizations. Generated figures live in `visualizations/` and are rendered in the dashboard/report. |
+| Missing values and anomalies | The stage pipeline aligns all sources to a weekly Friday grid, handles lagged and engineered features, and surfaces structural breaks through PCA/K-Means regimes and residual analysis. |
+| Database storage | The processed weekly master dataset is stored in SQLite as `dsm_project.db` with table `Weekly_Macro_Master` containing 545 weeks and 122 columns. The FastAPI backend exposes managed query endpoints plus a read-only SQL endpoint. |
+| Analysis techniques | Applies PCA, K-Means clustering, silhouette validation, XGBoost walk-forward forecasting, SHAP model explanations, sentiment/event overlays, correlation analysis, and counterfactual simulation. |
+| Current-state insights | The analysis identifies two monetary-policy regimes, shows that repo-rate corridor variables dominate WACMR behavior, and reports walk-forward forecast performance with 70.9% directional accuracy. |
+| Recommendations | The report and `/report` page translate findings into practical recommendations around regime-aware monitoring, rate-corridor interpretation, counterfactual policy analysis, and using WACMR as a transmission diagnostic. |
+| Bonus: dashboard/UI | The Next.js app provides interactive pages for exploration, forecasting, regimes, news, simulation, and the final report. |
+| Bonus: agentic system | The Gemini-powered agent can query the database, run read-only SQL, generate charts, compare regimes, explain SHAP contributions, and run WACMR counterfactuals through typed backend tools. |
+
+The full evidence trail is available in the live app at `/report`, with the PDF-ready report source and diagrams under `final/`.
+
 ## Deployment
 
 The stack splits cleanly: **backend on Render**, **frontend on Vercel**.
