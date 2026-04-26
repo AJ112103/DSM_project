@@ -407,7 +407,7 @@ TOOLS: dict[str, Tool] = {
         name="compare_regimes",
         description=(
             "Return mean / min / max / count for a given column, split by regime_label. "
-            "Regime 0 = pre-COVID normal, Regime 1 = post-COVID accommodation."
+            "Regime 1 = Normal/Tightening (pre-COVID), Regime 0 = Accommodation (post-COVID)."
         ),
         parameters={
             "type": "object",

@@ -35,7 +35,7 @@ folder.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{../diagram/data_lineage.png}
-\caption{End-to-end lineage. Raw CSVs flow through seven pipeline
+\caption{End-to-end lineage. Raw CSVs flow through six pipeline
 stages into SQLite and the saved-model folder; the FastAPI service
 reads from both and exposes the data through typed routes.}
 \label{fig:data-lineage}
@@ -135,21 +135,20 @@ matter of writing one Python function with annotated parameters.
 \begin{itemize}
 \item \texttt{run\_sql(query: str) -> rows}: read-only SQL against
   the master table; the tool refuses INSERT, UPDATE, DELETE, and DDL.
-\item \texttt{run\_counterfactual(repo\_rate\_delta\_bps: int) -> dict}:
+\item \texttt{run\_counterfactual(repo\_rate\_delta\_bps: float) -> dict}:
   invokes the cached counterfactual simulator and returns the
   prediction with a 90\% CI.
 \item \texttt{get\_shap\_contributions(week\_date: str) -> list}: SHAP
   decomposition for the specified row.
-\item \texttt{get\_regime\_stats() -> dict}: per-regime descriptive
-  statistics.
-\item \texttt{search\_columns(query: str) -> list}: fuzzy-match
+\item \texttt{compare\_regimes(column: str) -> dict}: per-regime
+  descriptive statistics for any chosen column.
+\item \texttt{semantic\_column\_search(term: str) -> list}: fuzzy-match
   against the column registry; supports synonyms (``inflation'' maps
-  to the four CPI columns).
-\item \texttt{query\_schema(family: str) -> list}: returns column
-  metadata for a source family (rates, balance sheet, debt, etc.).
-\item \texttt{get\_event\_context(start: str, end: str) -> list}:
-  returns the curated NLP events that fall in the requested date
-  range.
+  to CPI columns).
+\item \texttt{describe\_schema(category: str) -> list}: returns column
+  metadata, optionally filtered by category.
+\item \texttt{plot\_chart(...) -> dict}: renders an interactive Plotly
+  chart directly in the chat interface.
 \end{itemize}
 
 The system prompt in \texttt{backend/agent/system\_prompt.md} casts

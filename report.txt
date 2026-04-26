@@ -134,7 +134,7 @@
 
 ── 0.7 Initial Data Exploration Findings ─────────────────────────────
 
-  1. WACMR distribution is bimodal (mean ~6.6% pre-2020, ~4.8% post),
+  1. WACMR distribution is bimodal (peaks around ~6.5% and ~3.3%),
      immediately suggesting regime non-stationarity — confirmed by
      K-Means (K=2, Silhouette=0.4238).
 
@@ -357,8 +357,8 @@ Hypothesis Tested:
   Velocity    (lookback=14, ema=9)   : velocity, smooth_velocity
 
   ── Regime Features (Regime-Aware model only) ─────────────────────────────
-  regime_ohe_0             One-hot: Regime 0 (Normal/Tightening)
-  regime_ohe_1             One-hot: Regime 1 (Accommodation)
+  regime_ohe_0             One-hot: Regime 0 (Accommodation)
+  regime_ohe_1             One-hot: Regime 1 (Normal/Tightening)
   cluster_dist_0           Euclidean distance to Regime 0 centroid (PCA space)
   cluster_dist_1           Euclidean distance to Regime 1 centroid (PCA space)
 
@@ -389,7 +389,7 @@ Hypothesis Tested:
 
 ── 4.2 Discovered Regimes ────────────────────────────────────────────
 
-  REGIME 0 — "Normal / Tightening" (Pre-COVID Era)
+  REGIME 1 — "Normal / Tightening" (Pre-COVID Era)
     Weeks     : 315  (Feb 2014 – Feb 2020)
     Avg WACMR : 6.528%
     Avg Repo  : 6.591%
@@ -398,7 +398,7 @@ Hypothesis Tested:
                 recovery, demonetisation (Nov 2016), and gradual easing
                 toward 5.15% by late 2019 pre-COVID.
 
-  REGIME 1 — "Accommodation / Low-Rate" (COVID + Post-COVID)
+  REGIME 0 — "Accommodation / Low-Rate" (COVID + Post-COVID)
     Weeks     : 230  (Jan 2020 – Jul 2024)
     Avg WACMR : 4.809%
     Avg Repo  : 5.119%
@@ -501,7 +501,7 @@ Hypothesis Tested:
   Splitting the 545 SHAP values by regime label reveals the mechanical
   differences in how the model operates within each monetary environment.
 
-  REGIME 0 — Normal/Tightening (315 weeks)  |  Top 12 by Mean |SHAP|:
+  REGIME 1 — Normal/Tightening (315 weeks)  |  Top 12 by Mean |SHAP|:
   ────────────────────────────────────────────────────────────────────
    1. target_lag1                  0.68931   WACMR t-1 (autoregressive)
    2. repo_lag1                    0.28195   Repo Rate lag 1 week
@@ -516,7 +516,7 @@ Hypothesis Tested:
   11. target_lag4                  0.02049   WACMR t-4
   12. rates_I7496_18 (Rev Repo)    0.01326   Lower corridor bound ★
 
-  REGIME 1 — Accommodation/Low-Rate (230 weeks)  |  Top 12:
+  REGIME 0 — Accommodation/Low-Rate (230 weeks)  |  Top 12:
   ────────────────────────────────────────────────────────────────────
    1. target_lag1                  0.34376   WACMR t-1 (autoregressive)
    2. rates_I7496_17 (Repo)        0.16613   Current Repo Rate  [rose from #3]
@@ -543,7 +543,7 @@ Hypothesis Tested:
      RBI's asymmetric LAF corridor design where the MSF is always
      priced above Repo regardless of liquidity stance.
 
-  3. Absolute SHAP magnitudes are ~2× larger in Regime 0 than Regime 1.
+  3. Absolute SHAP magnitudes are ~2× larger in Regime 1 than Regime 0.
      target_lag1 SHAP = 0.689 (Tightening) vs 0.344 (Accommodation).
      WACMR is significantly more predictable from its own recent history
      during tightening periods — in surplus regimes, discretionary RBI

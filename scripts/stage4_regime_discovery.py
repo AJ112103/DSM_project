@@ -203,7 +203,7 @@ def run_stage3() -> None:
                 color="black", linewidth=1.4, zorder=3, label="Repo Rate (%)")
     ax.plot(df["week_date"], df[TARGET_COL],
             color="steelblue", linewidth=1.0, alpha=0.8, zorder=2,
-            label="364-Day T-Bill Yield (%)")
+            label="WACMR (%)")
 
     # Shade regime backgrounds
     legend_patches = []
@@ -227,7 +227,7 @@ def run_stage3() -> None:
         )
 
     ax.set_title(
-        f"RBI Repo Rate & 364-Day T-Bill Yield — Background Shaded by Regime\n"
+        f"RBI Repo Rate & WACMR — Background Shaded by Regime\n"
         f"K-Means K={optimal_k}  |  Jan 2014 – Jul 2024",
         fontsize=13, fontweight="bold"
     )
@@ -271,7 +271,7 @@ def run_stage3() -> None:
         for r in repo_mean.index:
             n = (df["regime_label"] == r).sum()
             print(f"    Regime {r}:  Avg Repo Rate = {repo_mean[r]:.2f} %  |  "
-                  f"Avg 364D Yield = {yield_mean[r]:.2f} %  |  {n} weeks")
+                  f"Avg WACMR = {yield_mean[r]:.2f} %  |  {n} weeks")
 
     print(f"\n  Plots saved:")
     print(f"    {sil_path}")

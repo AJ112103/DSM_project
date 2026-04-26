@@ -67,12 +67,12 @@ erDiagram
         real spread_wacmr_minus_repo "Liquidity proxy"
         real spread_msf_minus_repo "Corridor width"
         real spread_cp_minus_repo "Credit premium"
-        text source "Computed in stage 4"
+        text source "Computed in stage 3"
     }
 
     REGIME_GROUP {
-        int regime_label "K-Means cluster, 0 Tightening, 1 Accommodation"
+        int regime_label "K-Means cluster, 0 Accommodation, 1 Tightening"
         real cluster_dist_0 "Distance to centroid 0 in PCA space"
         real cluster_dist_1 "Distance to centroid 1 in PCA space"
-        text source "Computed in stage 3"
+        text source "Computed in stage 4"
     }

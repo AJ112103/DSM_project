@@ -5,7 +5,7 @@ Stage 4 (covers Proposal Stages 3 & 4):
 ==========================================================================
 Reads  : dsm_project.db  →  Weekly_Macro_Master  (must contain regime_label
          and cluster_dist_K columns from stage3)
-Target : target_364d_yield  (1-week-ahead prediction)
+Target : target_wacmr  (1-week-ahead prediction)
 Models : Baseline XGBoost  vs  Regime-Aware XGBoost
 CV     : Walk-forward expanding-window  (min 156 weeks training, 1-week ahead)
 Metrics: RMSE, MAE, Directional Accuracy
@@ -282,7 +282,7 @@ def run_stage4() -> None:
     )
     plt.title(
         f"SHAP Summary Plot — Top 15 Features\n"
-        f"{winner} XGBoost Model  |  364-Day T-Bill Yield",
+        f"{winner} XGBoost Model  |  WACMR",
         fontsize=13, fontweight="bold", pad=10
     )
     plt.tight_layout()
@@ -305,12 +305,12 @@ def run_stage4() -> None:
     mae_2yr  = float(mean_absolute_error(act_2yr, pred_2yr))
 
     fig, ax = plt.subplots(figsize=(16, 5))
-    ax.plot(dates_2yr, act_2yr,  color="black",    linewidth=1.6, label="Actual 364-Day T-Bill Yield")
+    ax.plot(dates_2yr, act_2yr,  color="black",    linewidth=1.6, label="Actual WACMR")
     ax.plot(dates_2yr, pred_2yr, color="crimson",  linewidth=1.2, linestyle="--",
             alpha=0.85, label=f"Predicted  (RMSE={rmse_2yr:.3f}, MAE={mae_2yr:.3f})")
     ax.fill_between(dates_2yr, act_2yr, pred_2yr, alpha=0.10, color="crimson")
     ax.set_title(
-        f"Actual vs Predicted — 364-Day T-Bill Cut-Off Yield\n"
+        f"Actual vs Predicted — WACMR\n"
         f"Final 2 Years of Walk-Forward CV  |  {winner} Model",
         fontsize=13, fontweight="bold"
     )
@@ -326,8 +326,8 @@ def run_stage4() -> None:
 
     # ── 4.3  Regime-Specific SHAP Analysis ───────────────────────────────────
     # Split the 545 SHAP rows by regime label to prove mechanical difference:
-    #   Regime 0 (Tightening) → model should lean on MSF Rate (upper bound)
-    #   Regime 1 (Accommodation) → model should lean on Reverse Repo (lower bound)
+    #   Regime 0 (Accommodation) → model should lean on Reverse Repo (lower bound)
+    #   Regime 1 (Tightening) → model should lean on MSF Rate (upper bound)
     print("\n[4.3] Regime-Specific SHAP Analysis ...")
 
     regime_labels = df["regime_label"].values   # 545 values, aligned with shap_values
@@ -342,8 +342,8 @@ def run_stage4() -> None:
     regime_top12_results = {}
     for ax, (regime_id, label, color) in zip(
         axes,
-        [(0, "Regime 0\n(Normal/Tightening)", "#2166ac"),
-         (1, "Regime 1\n(Accommodation)",     "#d6604d")]
+        [(0, "Regime 0\n(Accommodation)",     "#2166ac"),
+         (1, "Regime 1\n(Normal/Tightening)", "#d6604d")]
     ):
         mask = regime_labels == regime_id
         sv   = shap_values[mask]                    # (n_regime_weeks, n_features)
@@ -381,8 +381,8 @@ def run_stage4() -> None:
     msf_rank_r1  = next((i+1 for i, f in enumerate(regime_top12_results[1]["feature"]) if "I7496_20" in f), "outside top 12")
     rrr_rank_r1  = next((i+1 for i, f in enumerate(regime_top12_results[1]["feature"]) if "I7496_18" in f), "outside top 12")
     print(f"\n  Mechanistic finding:")
-    print(f"    MSF Rate rank  — Regime 0 (Tightening): #{msf_rank_r0}  |  Regime 1 (Accommodation): #{msf_rank_r1}")
-    print(f"    Rev Repo rank  — Regime 0 (Tightening): #{rrr_rank_r0}  |  Regime 1 (Accommodation): #{rrr_rank_r1}")
+    print(f"    MSF Rate rank  — Regime 0 (Accommodation): #{msf_rank_r0}  |  Regime 1 (Tightening): #{msf_rank_r1}")
+    print(f"    Rev Repo rank  — Regime 0 (Accommodation): #{rrr_rank_r0}  |  Regime 1 (Tightening): #{rrr_rank_r1}")
 
     # ── 4.4  Residual Analysis & Calendar Effects ─────────────────────────────
     print("\n[4.4] Residual Analysis & Calendar Effects ...")
@@ -501,8 +501,8 @@ def run_stage4() -> None:
     for i, row in shap_df.head(5).iterrows():
         print(f"    {i+1}. {row['feature']:<40}  Mean |SHAP| = {row['mean_abs_shap']:.5f}")
     print(f"\n  Mechanistic regime finding:")
-    print(f"    MSF Rate  — Regime 0 (Tightening): #{msf_rank_r0}  |  Regime 1 (Accommodation): #{msf_rank_r1}")
-    print(f"    Rev Repo  — Regime 0 (Tightening): #{rrr_rank_r0}  |  Regime 1 (Accommodation): #{rrr_rank_r1}")
+    print(f"    MSF Rate  — Regime 0 (Accommodation): #{msf_rank_r0}  |  Regime 1 (Tightening): #{msf_rank_r1}")
+    print(f"    Rev Repo  — Regime 0 (Accommodation): #{rrr_rank_r0}  |  Regime 1 (Tightening): #{rrr_rank_r1}")
     print(f"\n  Calendar-effect finding:")
     print(f"    Event-week RMSE: {event_rmse:.4f}  vs  Non-event RMSE: {nonevent_rmse:.4f}" if event_rmse else "")
     print(f"\n  Plots saved:")

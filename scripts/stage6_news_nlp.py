@@ -19,6 +19,7 @@ import json
 import os
 import warnings
 from pathlib import Path
+from typing import Union
 
 import matplotlib
 matplotlib.use("Agg")
@@ -481,7 +482,7 @@ def classify_event_periods(date_index: pd.DatetimeIndex) -> pd.Series:
 # 3. Integration with master data
 # ====================================================================
 
-def integrate(master_path: str | Path) -> pd.DataFrame:
+def integrate(master_path: Union[str, Path]) -> pd.DataFrame:
     """Read master data, attach NLP features, and return enriched DataFrame."""
     master = pd.read_csv(master_path, parse_dates=["week_date"])
     master = master.sort_values("week_date").reset_index(drop=True)

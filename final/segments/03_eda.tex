@@ -6,7 +6,7 @@ the target variable look like over time and in distribution? Where are
 the data missing, and what was done about it? Which anomalies stand
 out? And which feature pairs are most strongly correlated, in
 particular outside the rate corridor? The implementation lives in
-\texttt{stage2\_alignment\_db.py} and \texttt{stage3\_advanced\_eda.py}.
+\texttt{stage3\_alignment\_db.py}.
 
 \subsection{Target variable: WACMR}
 
@@ -16,8 +16,8 @@ series. The visual pattern is striking: a slow downtrend through the
 plateau through late 2021, and a re-tightening cycle that begins in
 mid-2022 and is still incomplete at the end of the window. The
 distribution in Figure~\ref{fig:eda-distributions} is visibly bimodal,
-with one mode near 4.8\% (post-COVID accommodation) and another near
-6.6\% (the pre-COVID normal). Bimodality of this kind is itself a
+with one mode near 3.3\% (surplus liquidity) and another near
+6.5\% (tight liquidity). Bimodality of this kind is itself a
 signal of regime non-stationarity, and motivates the unsupervised
 clustering analysis in Section~\ref{sec:methods}.
 

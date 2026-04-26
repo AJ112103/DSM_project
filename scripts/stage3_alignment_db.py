@@ -2,7 +2,7 @@
 Stage 2: Data Alignment, EDA & Database Storage
 ================================================
 Golden Window : 2014-01-10 (first Friday) → 2024-07-19 (last Friday before Jul-22)
-Target        : 364-Day T-Bill Cut-Off Yield  (tb_I7504_10_364d → target_364d_yield)
+Target        : WACMR
 Granularity   : Weekly (Friday)
 Output        : dsm_project.db  →  table  Weekly_Macro_Master
                 data/processed/Weekly_Macro_Master.csv  (backup only)
@@ -185,7 +185,8 @@ def load_treasury_bills() -> pd.DataFrame:
     Temporal index : WeekCode (Calendar-Year, YYYYWW)
     Pivot          : One row per week × bill type (91D, 182D, 364D)
     Prefix         : tb_
-    364D cut-off yield (tb_I7504_10_364d) becomes the TARGET variable.
+    364D cut-off yield is not available; 364D outstanding amount (tb_I7504_10_364d) is a feature.
+    WACMR (rates_I7496_26) is the TARGET variable.
     """
     df = pd.read_csv(DATA_DIR / "Treasury_Bills_Details.csv", low_memory=False)
     df["week_date"] = df["WeekCode"].apply(parse_weekcode_cy)
@@ -508,14 +509,14 @@ def build_master() -> None:
     # Query 1 — Average yield & repo rate by calendar year
     q1 = f"""
 SELECT strftime('%Y', week_date)          AS year,
-       ROUND(AVG({TARGET_COL}), 3)        AS avg_364d_yield_pct,
+       ROUND(AVG({TARGET_COL}), 3)        AS avg_wacmr_pct,
        ROUND(AVG({REPO_RATE_COL}), 3)     AS avg_repo_rate_pct,
        COUNT(*)                            AS weeks
 FROM   {TABLE_NAME}
 GROUP  BY year
 ORDER  BY year;
 """.strip()
-    print("\nQuery 1 — Average 364-Day T-Bill Yield & Repo Rate by Year:")
+    print("\nQuery 1 — Average WACMR & Repo Rate by Year:")
     print(q1)
     print()
     r1 = pd.read_sql(q1, conn)
@@ -537,7 +538,7 @@ SELECT week_date,
 FROM   {TABLE_NAME}
 WHERE  {TARGET_COL} = (SELECT MIN({TARGET_COL}) FROM {TABLE_NAME});
 """.strip()
-    print("\nQuery 2 — Weeks with Maximum and Minimum 364-Day T-Bill Yield:")
+    print("\nQuery 2 — Weeks with Maximum and Minimum WACMR:")
     print(q2)
     print()
     r2 = pd.read_sql(q2, conn)
@@ -546,7 +547,7 @@ WHERE  {TARGET_COL} = (SELECT MIN({TARGET_COL}) FROM {TABLE_NAME});
     # Query 3 — COVID-period yield-vs-repo spread
     q3 = f"""
 SELECT week_date,
-       ROUND({TARGET_COL}, 3)                                AS yield_364d,
+       ROUND({TARGET_COL}, 3)                                AS wacmr,
        ROUND({REPO_RATE_COL}, 3)                             AS repo_rate,
        ROUND({TARGET_COL} - {REPO_RATE_COL}, 3)             AS yield_over_repo_spread
 FROM   {TABLE_NAME}
@@ -554,7 +555,7 @@ WHERE  strftime('%Y', week_date) IN ('2020', '2021')
 ORDER  BY week_date
 LIMIT  12;
 """.strip()
-    print("\nQuery 3 — COVID Period (2020-2021): 364-Day Yield vs Repo Rate Spread:")
+    print("\nQuery 3 — COVID Period (2020-2021): WACMR vs Repo Rate Spread:")
     print(q3)
     print()
     r3 = pd.read_sql(q3, conn)

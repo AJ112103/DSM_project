@@ -1,23 +1,3 @@
-========================================================================
-  DSM PROJECT — PIPELINE RUN LOG
-========================================================================
-  Started : 2026-04-26
-  Skipped : stage1_fetch_yfinance.py  (data already present)
-            stage1b_fetch_ndap.py     (data already present)
-
-  Stage 2 (stage2_technical_indicators.py) — COMPLETED EARLIER
-  Output: data/raw/ndap/master_ohlc.csv  |  552 rows × 29 cols
-  All 29 columns 100% non-null
-========================================================================
-
-========================================================================
-  STAGE 3 — stage3_alignment_db.py
-  Started: Sun Apr 26 16:29:04 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
 ======================================================================
   STAGE 1: DATA ALIGNMENT, EDA & DATABASE STORAGE
 ======================================================================
@@ -136,29 +116,29 @@ rates_I7496_27       0.2
 [1.8] Sample SQL Query Demonstrations:
 ────────────────────────────────────────────────────────────────────
 
-Query 1 — Average 364-Day T-Bill Yield & Repo Rate by Year:
+Query 1 — Average WACMR & Repo Rate by Year:
 SELECT strftime('%Y', week_date)          AS year,
-       ROUND(AVG(target_wacmr), 3)        AS avg_364d_yield_pct,
+       ROUND(AVG(target_wacmr), 3)        AS avg_wacmr_pct,
        ROUND(AVG(rates_I7496_17), 3)     AS avg_repo_rate_pct,
        COUNT(*)                            AS weeks
 FROM   Weekly_Macro_Master
 GROUP  BY year
 ORDER  BY year;
 
-year  avg_364d_yield_pct  avg_repo_rate_pct  weeks
-2014               8.084              8.000     47
-2015               7.217              7.279     51
-2016               6.455              6.505     53
-2017               5.962              6.144     52
-2018               6.163              6.250     52
-2019               5.692              5.738     52
-2020               3.883              4.327     52
-2021               3.219              4.000     53
-2022               4.623              4.931     52
-2023               6.561              6.476     52
-2024               6.610              6.500     29
+year  avg_wacmr_pct  avg_repo_rate_pct  weeks
+2014          8.084              8.000     47
+2015          7.217              7.279     51
+2016          6.455              6.505     53
+2017          5.962              6.144     52
+2018          6.163              6.250     52
+2019          5.692              5.738     52
+2020          3.883              4.327     52
+2021          3.219              4.000     53
+2022          4.623              4.931     52
+2023          6.561              6.476     52
+2024          6.610              6.500     29
 
-Query 2 — Weeks with Maximum and Minimum 364-Day T-Bill Yield:
+Query 2 — Weeks with Maximum and Minimum WACMR:
 SELECT week_date,
        ROUND(target_wacmr, 3)       AS yield_pct,
        ROUND(rates_I7496_17, 3)    AS repo_rate_pct,
@@ -177,9 +157,9 @@ WHERE  target_wacmr = (SELECT MIN(target_wacmr) FROM Weekly_Macro_Master);
 2014-02-14       8.90            8.0   MAX
 2020-12-04       3.07            4.0   MIN
 
-Query 3 — COVID Period (2020-2021): 364-Day Yield vs Repo Rate Spread:
+Query 3 — COVID Period (2020-2021): WACMR vs Repo Rate Spread:
 SELECT week_date,
-       ROUND(target_wacmr, 3)                                AS yield_364d,
+       ROUND(target_wacmr, 3)                                AS wacmr,
        ROUND(rates_I7496_17, 3)                             AS repo_rate,
        ROUND(target_wacmr - rates_I7496_17, 3)             AS yield_over_repo_spread
 FROM   Weekly_Macro_Master
@@ -187,19 +167,19 @@ WHERE  strftime('%Y', week_date) IN ('2020', '2021')
 ORDER  BY week_date
 LIMIT  12;
 
- week_date  yield_364d  repo_rate  yield_over_repo_spread
-2020-01-03       5.051       5.15                  -0.099
-2020-01-10       4.924       5.15                  -0.226
-2020-01-17       4.971       5.15                  -0.179
-2020-01-24       4.955       5.15                  -0.195
-2020-01-31       4.942       5.15                  -0.208
-2020-02-07       4.974       5.15                  -0.176
-2020-02-14       4.990       5.15                  -0.160
-2020-02-21       4.974       5.15                  -0.176
-2020-02-28       4.962       5.15                  -0.188
-2020-03-06       4.946       5.15                  -0.204
-2020-03-13       4.946       5.15                  -0.204
-2020-03-20       4.969       5.15                  -0.181
+ week_date  wacmr  repo_rate  yield_over_repo_spread
+2020-01-03  5.051       5.15                  -0.099
+2020-01-10  4.924       5.15                  -0.226
+2020-01-17  4.971       5.15                  -0.179
+2020-01-24  4.955       5.15                  -0.195
+2020-01-31  4.942       5.15                  -0.208
+2020-02-07  4.974       5.15                  -0.176
+2020-02-14  4.990       5.15                  -0.160
+2020-02-21  4.974       5.15                  -0.176
+2020-02-28  4.962       5.15                  -0.188
+2020-03-06  4.946       5.15                  -0.204
+2020-03-13  4.946       5.15                  -0.204
+2020-03-20  4.969       5.15                  -0.181
 
 ======================================================================
   [CHECK-IN 1]  STAGE 1 COMPLETE
@@ -213,20 +193,6 @@ LIMIT  12;
   EDA distribution plot    : /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/eda_distributions.png
   Target time-series plot  : /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/target_timeseries.png
 ======================================================================
-
-  Finished: Sun Apr 26 16:29:06 IST 2026
-========================================================================
-
-========================================================================
-  STAGE 4 — stage4_regime_discovery.py
-  Started: Sun Apr 26 16:29:13 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
-/Users/arnav/Desktop/workspaces/dsm_final/DSM_project/scripts/stage4_regime_discovery.py:167: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
-  palette = plt.cm.get_cmap("tab10", optimal_k)
 ======================================================================
   STAGE 2: UNSUPERVISED ML — MONETARY REGIME DISCOVERY
 ======================================================================
@@ -275,26 +241,14 @@ regime_label
   PCA components     : 14  (≥90 % variance)
 
   Regime Characterisation (sorted by Repo Rate):
-    Regime 0:  Avg Repo Rate = 5.12 %  |  Avg 364D Yield = 4.81 %  |  230 weeks
-    Regime 1:  Avg Repo Rate = 6.59 %  |  Avg 364D Yield = 6.53 %  |  315 weeks
+    Regime 0:  Avg Repo Rate = 5.12 %  |  Avg WACMR = 4.81 %  |  230 weeks
+    Regime 1:  Avg Repo Rate = 6.59 %  |  Avg WACMR = 6.53 %  |  315 weeks
 
   Plots saved:
     /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/silhouette_scores.png
     /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/pca_regime_scatter.png
     /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/regime_timeseries.png
 ======================================================================
-
-  Finished: Sun Apr 26 16:29:17 IST 2026
-========================================================================
-
-========================================================================
-  STAGE 5 — stage5_supervised_ml.py
-  Started: Sun Apr 26 16:29:24 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
 ======================================================================
   STAGE 3: SUPERVISED ML — XGBoost WALK-FORWARD CV
 ======================================================================
@@ -450,155 +404,3 @@ Metric                           Baseline   Regime-Aware   Improvement
     /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/shap_by_regime.png
     /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/residual_calendar.png
 ======================================================================
-
-  Finished: Sun Apr 26 16:35:27 IST 2026
-========================================================================
-
-========================================================================
-  STAGE 6 — stage6_synthesis.py
-  Started: Sun Apr 26 16:35:37 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
-/Users/arnav/Desktop/workspaces/dsm_final/DSM_project/scripts/stage6_synthesis.py:48: UserWarning: obj.round has no effect with datetime, timedelta, or period dtypes. Use obj.dt.round(...) instead.
-  ).round(3)
-======================================================================
-  STAGE 5: SYNTHESIS & POLICY RECOMMENDATIONS
-======================================================================
-  Saved: /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/regime_wacmr_boxplot.png
-
-  Report written: /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/report.txt
-
-======================================================================
-  [CHECK-IN 5]  STAGE 5 COMPLETE — PROJECT FINISHED
-======================================================================
-
-  EXECUTIVE SUMMARY (3 paragraphs):
-
-  [1] This project built a two-phase ML pipeline to forecast India's Weighted
-  Average Call Money Rate (WACMR) using 545 weeks of RBI open data (Feb 2014
-  to Jul 2024). Eight datasets were aligned onto a weekly Friday index, cleaned
-  under a strict 75% density rule, and stored in a SQLite database. The master
-  panel contains 90 features drawn from RBI's balance sheet, monetary rate
-  corridors, money supply aggregates, commercial paper markets, government
-  securities, and CPI inflation indices.
-
-  [2] Unsupervised clustering via PCA (12 components, 91% variance) and K-Means
-  (K=2, Silhouette=0.4643) discovered two macroeconomically coherent regimes:
-  a "Normal/Tightening" regime (Repo ≈ 6.62%, WACMR ≈ 6.56%, 308 weeks) and an
-  "Accommodation" regime (Repo ≈ 5.12%, WACMR ≈ 4.81%, 237 weeks). The boundary
-  precisely marks the COVID-19 structural break in RBI's liquidity framework —
-  validating the clustering approach without any labelled supervision.
-
-  [3] XGBoost with walk-forward expanding-window CV (389 test steps) achieved
-  RMSE=0.1039 and 70.1% directional accuracy — predicting WACMR within ±10bps
-  on average. The regime-aware model produced statistically equivalent results,
-  revealing that XGBoost implicitly learns regime context from lagged rate
-  variables. SHAP analysis confirmed the top drivers are the WACMR autoregressive
-  lag, the Repo Rate and its lags, the WACMR-Repo spread, and the MSF Rate —
-  all components of the RBI LAF corridor — confirming India's call money market
-  is tightly corridor-bound and highly predictable from its own recent history.
-
-
-  Finished: Sun Apr 26 16:35:38 IST 2026
-========================================================================
-
-========================================================================
-  STAGE 7 — stage7_news_nlp.py
-  Started: Sun Apr 26 16:35:47 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
-[+] Saved 75 events to /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/backend/nlp/news_data/events.json
-[+] Integrating NLP features with master data ...
-[+] Saved enriched data to /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/data/processed/Weekly_Macro_Master_NLP.csv
-[+] Generating visualizations ...
-  Saved /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/news_sentiment_timeline.png
-  Saved /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/event_density_heatmap.png
-
-=================================================================
- STAGE 6 -- NLP News Sentiment Analysis Summary
-=================================================================
-
---- Events by category ---
-  rate_decision       : 58
-  liquidity           : 6
-  crisis              : 3
-  fiscal              : 2
-  structural          : 2
-  pandemic            : 2
-  external            : 2
-  TOTAL               : 75
-
---- Correlations with news_sentiment ---
-  Corr(news_sentiment, target_wacmr                  ) = +0.0017
-  Corr(news_sentiment, rates_I7496_17                ) = +0.0260
-  Corr(news_sentiment, spread_wacmr_minus_repo       ) = -0.0922
-
---- Top 5 highest-impact weeks ---
-  2016-11-11    sentiment=-0.900  WACMR=6.21  period=demonetization_shock
-  2020-03-27    sentiment=-0.900  WACMR=5.05  period=covid_shock
-  2015-10-02    sentiment=-0.800  WACMR=6.97  period=pre_demonetization
-  2018-09-21    sentiment=+0.800  WACMR=6.57  period=ilfs_crisis
-  2019-08-09    sentiment=-0.800  WACMR=5.45  period=pre_covid
-
-=================================================================
-
-
-  Finished: Sun Apr 26 16:35:50 IST 2026
-========================================================================
-
-========================================================================
-  FULL PIPELINE RUN COMPLETE
-  Completed: Sun Apr 26 16:35:50 IST 2026
-========================================================================
-========================================================================
-  STAGE 6 — stage6_news_nlp.py (Renamed from Stage 7)
-  Started: Sun Apr 26 16:41:06 IST 2026
-========================================================================
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/computation/expressions.py:22: UserWarning: Pandas requires version '2.10.2' or newer of 'numexpr' (version '2.8.7' currently installed).
-  from pandas.core.computation.check import NUMEXPR_INSTALLED
-/Users/arnav/anaconda3/lib/python3.11/site-packages/pandas/core/arrays/masked.py:56: UserWarning: Pandas requires version '1.4.2' or newer of 'bottleneck' (version '1.3.7' currently installed).
-  from pandas.core import (
-[+] Saved 75 events to /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/backend/nlp/news_data/events.json
-[+] Integrating NLP features with master data ...
-[+] Saved enriched data to /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/data/processed/Weekly_Macro_Master_NLP.csv
-[+] Generating visualizations ...
-  Saved /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/news_sentiment_timeline.png
-  Saved /Users/arnav/Desktop/workspaces/dsm_final/DSM_project/visualizations/event_density_heatmap.png
-
-=================================================================
- STAGE 6 -- NLP News Sentiment Analysis Summary
-=================================================================
-
---- Events by category ---
-  rate_decision       : 58
-  liquidity           : 6
-  crisis              : 3
-  fiscal              : 2
-  structural          : 2
-  pandemic            : 2
-  external            : 2
-  TOTAL               : 75
-
---- Correlations with news_sentiment ---
-  Corr(news_sentiment, target_wacmr                  ) = +0.0017
-  Corr(news_sentiment, rates_I7496_17                ) = +0.0260
-  Corr(news_sentiment, spread_wacmr_minus_repo       ) = -0.0922
-
---- Top 5 highest-impact weeks ---
-  2016-11-11    sentiment=-0.900  WACMR=6.21  period=demonetization_shock
-  2020-03-27    sentiment=-0.900  WACMR=5.05  period=covid_shock
-  2015-10-02    sentiment=-0.800  WACMR=6.97  period=pre_demonetization
-  2018-09-21    sentiment=+0.800  WACMR=6.57  period=ilfs_crisis
-  2019-08-09    sentiment=-0.800  WACMR=5.45  period=pre_covid
-
-=================================================================
-
-
-  Finished: Sun Apr 26 16:41:08 IST 2026
-========================================================================
