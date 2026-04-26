@@ -130,7 +130,7 @@ def run_stage3() -> None:
     ax1.legend(lines1 + lines2, lbs1 + lbs2, fontsize=9)
     plt.tight_layout()
     sil_path = VIS_DIR / "silhouette_scores.png"
-    plt.savefig(sil_path, dpi=150, bbox_inches="tight")
+    plt.savefig(sil_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {sil_path}")
 
@@ -191,7 +191,7 @@ def run_stage3() -> None:
     ax.grid(alpha=0.3)
     plt.tight_layout()
     scatter_path = VIS_DIR / "pca_regime_scatter.png"
-    plt.savefig(scatter_path, dpi=150, bbox_inches="tight")
+    plt.savefig(scatter_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {scatter_path}")
 
@@ -243,7 +243,7 @@ def run_stage3() -> None:
     )
     plt.tight_layout()
     ts_path = VIS_DIR / "regime_timeseries.png"
-    plt.savefig(ts_path, dpi=150, bbox_inches="tight")
+    plt.savefig(ts_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {ts_path}")
 

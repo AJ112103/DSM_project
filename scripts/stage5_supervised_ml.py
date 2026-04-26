@@ -287,7 +287,7 @@ def run_stage4() -> None:
     )
     plt.tight_layout()
     shap_path = VIS_DIR / "shap_summary.png"
-    plt.savefig(shap_path, dpi=150, bbox_inches="tight")
+    plt.savefig(shap_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"\n  Saved: {shap_path}")
 
@@ -320,7 +320,7 @@ def run_stage4() -> None:
     ax.grid(alpha=0.3)
     plt.tight_layout()
     pred_path = VIS_DIR / "actual_vs_predicted.png"
-    plt.savefig(pred_path, dpi=150, bbox_inches="tight")
+    plt.savefig(pred_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {pred_path}")
 
@@ -371,7 +371,7 @@ def run_stage4() -> None:
 
     plt.tight_layout()
     regime_shap_path = VIS_DIR / "shap_by_regime.png"
-    plt.savefig(regime_shap_path, dpi=150, bbox_inches="tight")
+    plt.savefig(regime_shap_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"\n  Saved: {regime_shap_path}")
 
@@ -486,7 +486,7 @@ def run_stage4() -> None:
 
     plt.tight_layout()
     resid_path = VIS_DIR / "residual_calendar.png"
-    plt.savefig(resid_path, dpi=150, bbox_inches="tight")
+    plt.savefig(resid_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"\n  Saved: {resid_path}")
 

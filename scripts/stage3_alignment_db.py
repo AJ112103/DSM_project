@@ -467,7 +467,7 @@ def build_master() -> None:
 
     plt.tight_layout()
     eda_path = VIS_DIR / "eda_distributions.png"
-    plt.savefig(eda_path, dpi=150, bbox_inches="tight")
+    plt.savefig(eda_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {eda_path}")
 
@@ -481,7 +481,7 @@ def build_master() -> None:
     ax.grid(alpha=0.3)
     plt.tight_layout()
     ts_path = VIS_DIR / "target_timeseries.png"
-    plt.savefig(ts_path, dpi=150, bbox_inches="tight")
+    plt.savefig(ts_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  Saved: {ts_path}")
 
