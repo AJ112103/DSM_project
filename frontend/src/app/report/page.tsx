@@ -27,6 +27,9 @@ type Block =
   | { kind: "callout"; tone: "finding" | "result" | "hypothesis" | "info"; text: string }
   | { kind: "metric"; label: string; value: string }
   | { kind: "table"; raw: string }
+  | { kind: "coltable"; header: string[]; rows: string[][] }
+  | { kind: "kvtable"; items: { key: string; value: string; badge?: string }[] }
+  | { kind: "minihead"; text: string }
   | { kind: "code"; raw: string };
 
 interface Figure {
@@ -227,6 +230,140 @@ function slug(text: string): string {
     .slice(0, 60);
 }
 
+// Sniff a 3+-column header followed by a dash separator and ≥1 data row.
+// Returns the parsed table and the next index to resume from.
+function sniffColTable(
+  lines: string[],
+  i: number
+): { header: string[]; rows: string[][]; endIdx: number } | null {
+  const headerLine = lines[i];
+  if (!headerLine) return null;
+  // The header must have at least 3 visual fields separated by 3+ spaces.
+  // We split by /\s{3,}/ on the trimmed line.
+  const headerFields = headerLine.trim().split(/\s{3,}/);
+  if (headerFields.length < 2) return null;
+  // Reject if any header "field" looks like prose (contains ", " or "." mid-word).
+  if (headerFields.some((f) => /\s\w+,\s/.test(f))) return null;
+
+  const sepLine = lines[i + 1];
+  if (!sepLine) return null;
+  // Separator line: predominantly hyphens (allow leading whitespace).
+  if (!/^\s*-{6,}\s*$/.test(sepLine)) return null;
+
+  // Determine column boundaries from the header by recording the start
+  // column of each header field in the original (untrimmed) header line.
+  const leftPad = headerLine.match(/^\s*/)?.[0].length ?? 0;
+  const headerBody = headerLine.slice(leftPad);
+  const colStarts: number[] = [];
+  let cursor = 0;
+  for (const f of headerFields) {
+    const idx = headerBody.indexOf(f, cursor);
+    colStarts.push(idx + leftPad);
+    cursor = idx + f.length;
+  }
+
+  // Slice each subsequent line into columns at the recorded column starts,
+  // stopping at a blank line or an obviously different structure.
+  const rows: string[][] = [];
+  let j = i + 2;
+  while (j < lines.length) {
+    const ln = lines[j];
+    if (!ln.trim()) break;
+    if (/^\s*-{6,}\s*$/.test(ln)) { j++; break; } // table footer dashes
+    if (/^\s*[─=]{4,}/.test(ln)) break; // section separator
+    if (/^──/.test(ln.trim())) break; // subsection marker
+    if (ln.trim().startsWith("[")) break; // bracketed annotation
+    // A `Word : Value` line (METRIC_LINE) signals end-of-table — these
+    // belong to a different block kind, not extra table rows.
+    if (METRIC_LINE.test(ln)) break;
+    // Need enough chars to slice
+    const cells: string[] = [];
+    for (let c = 0; c < colStarts.length; c++) {
+      const start = colStarts[c];
+      const end = c + 1 < colStarts.length ? colStarts[c + 1] : ln.length;
+      cells.push(ln.slice(start, end).trim());
+    }
+    // Reject row if all cells empty, or if the first cell is empty (means
+    // the line is a continuation of the previous row's last column).
+    if (cells.every((s) => !s)) break;
+    if (!cells[0]) break;
+    // Reject row whose first cell spans >2× the first column width — that's
+    // wrap-around prose, not a table row.
+    const firstColWidth =
+      colStarts.length > 1 ? colStarts[1] - colStarts[0] : Infinity;
+    if (cells[0].length > firstColWidth * 2) break;
+    rows.push(cells);
+    j++;
+  }
+  if (rows.length === 0) return null;
+  return { header: headerFields, rows, endIdx: j };
+}
+
+// Sniff a label/value listing. Two patterns are accepted:
+//
+//   (a) Feature-ID: `  prefix_id   description …`   (e.g. `rates_I7496_5`)
+//   (b) Aligned-colon: `  Label (params)  : value`  (e.g. OHLCV indicators)
+//
+// Both produce a kvtable block of {key, value, badge?} items. We require ≥2
+// consecutive lines so prose with one stray colon doesn't get hijacked.
+function sniffKvTable(
+  lines: string[],
+  i: number
+): { items: { key: string; value: string; badge?: string }[]; endIdx: number } | null {
+  const FEATURE = /^\s+([a-z][A-Za-z0-9_]*[A-Za-z0-9])\s{2,}(\S.*)$/;
+  // Aligned-colon: label can include parens, =, commas, ×, etc., as long as
+  // it stays on one side of a `:` and is short. Value must be short too so
+  // we don't capture a paragraph with one colon.
+  const COLON = /^\s+([A-Za-z][^:]{1,40}?)\s*:\s+(\S.{0,90})$/;
+  // Arrow-separated, e.g. silhouette scores: `    K=2  →  0.4643  ★ OPTIMAL`
+  const ARROW = /^\s+(\S{1,30})\s+→\s+(\S.{0,80})$/;
+
+  const detectKind = (
+    line: string | undefined
+  ): "feature" | "colon" | "arrow" | null => {
+    if (!line) return null;
+    if (FEATURE.test(line)) return "feature";
+    if (ARROW.test(line)) return "arrow";
+    if (COLON.test(line) && !METRIC_LINE.test(line)) {
+      // METRIC_LINE matches simpler `Word : Value` rows that already become
+      // metric blocks; only consider lines that don't fit METRIC_LINE here.
+      return "colon";
+    }
+    return null;
+  };
+
+  const kind = detectKind(lines[i]);
+  if (!kind) return null;
+  if (detectKind(lines[i + 1]) !== kind) return null;
+
+  const items: { key: string; value: string; badge?: string }[] = [];
+  let j = i;
+  while (j < lines.length) {
+    const ln = lines[j];
+    const k = detectKind(ln);
+    if (k !== kind) break;
+    const m =
+      kind === "feature"
+        ? ln.match(FEATURE)
+        : kind === "arrow"
+          ? ln.match(ARROW)
+          : ln.match(COLON);
+    if (!m) break;
+    const key = m[1].trim();
+    let value = m[2].trim();
+    let badge: string | undefined;
+    const badgeMatch = value.match(/(.+?)\s+(★\s*.+)$/);
+    if (badgeMatch) {
+      value = badgeMatch[1].trim();
+      badge = badgeMatch[2].trim();
+    }
+    items.push({ key, value, badge });
+    j++;
+  }
+  if (items.length < 2) return null;
+  return { items, endIdx: j };
+}
+
 function parseReport(raw: string): ParsedReport {
   const out: ParsedReport = {
     title: "Full research report",
@@ -416,10 +553,15 @@ function parseReport(raw: string): ParsedReport {
       flushAll();
       const innerTitle = subMatch[1].trim();
       const nm = innerTitle.match(SUB_NUM);
-      startNewSubsection(
-        smartTitleCase(nm ? nm[2] : innerTitle),
-        nm ? nm[1] : undefined
-      );
+      // Numbered (e.g. "3.1 Source Datasets") → real subsection in TOC.
+      // Unnumbered nested markers like "── X.csv (prefix: Y_) ──" get
+      // demoted to a minihead block: visual divider, no TOC noise, no
+      // structural break.
+      if (nm) {
+        startNewSubsection(smartTitleCase(nm[2]), nm[1]);
+      } else {
+        blocksTarget().push({ kind: "minihead", text: innerTitle });
+      }
       i++; continue;
     }
 
@@ -487,6 +629,62 @@ function parseReport(raw: string): ParsedReport {
     // A non-indented / clearly new prose line while a list is open ends it.
     if (listKind) flushList();
 
+    // Column-aligned plain-text TABLE: "Header  Header2  Header3" then a
+    // dash separator then ≥1 data row with similar column boundaries.
+    // Source has these for "Source Datasets" (3.1) and "Model Performance"
+    // (5.1). Without this, they collapse into one merged paragraph.
+    const tbl = sniffColTable(lines, i);
+    if (tbl) {
+      flushAll();
+      blocksTarget().push({ kind: "coltable", header: tbl.header, rows: tbl.rows });
+      i = tbl.endIdx;
+      continue;
+    }
+
+    // Feature-ID listings: 2+ consecutive lines of `prefix_id  description`.
+    // Source has these throughout 3.4 ("Engineered Features", per-CSV
+    // feature lists). Without this, they collapse into a wall of text.
+    const kv = sniffKvTable(lines, i);
+    if (kv) {
+      flushAll();
+      blocksTarget().push({ kind: "kvtable", items: kv.items });
+      i = kv.endIdx;
+      continue;
+    }
+
+    // Metric vs. code: a column-aligned line that ALSO has a `Label : Value`
+    // shape with a short label is a metric (e.g. `Weeks : 308 (Feb 2014…)`),
+    // not a code block. Without this, Section 4.2 splits each `Weeks:` and
+    // `Context:` row into its own one-line <pre> instead of joining the
+    // metric group with `Avg WACMR / Avg Repo / Avg MSF`.
+    const mm = line.match(METRIC_LINE);
+    const looksLikeMetric =
+      mm &&
+      mm[1].length <= 32 &&
+      !/\.\s/.test(mm[1]);
+    if (looksLikeMetric) {
+      flushPara();
+      flushCode();
+      // Slurp hanging-indent continuation lines into the value so multi-line
+      // metric values (e.g. Context paragraphs) stay attached to their label.
+      const labelIndent = (line.match(/^\s*/)?.[0].length) ?? 0;
+      let value = mm![2].trim();
+      let k = i + 1;
+      while (k < lines.length) {
+        const next = lines[k];
+        if (!next.trim()) break;
+        const nextIndent = (next.match(/^\s*/)?.[0].length) ?? 0;
+        if (nextIndent <= labelIndent + 2) break;
+        if (METRIC_LINE.test(next)) break;
+        if (/^\s*[─=]{4,}/.test(next) || /^──/.test(next.trim())) break;
+        value += " " + next.trim();
+        k++;
+      }
+      blocksTarget().push({ kind: "metric", label: mm![1].trim(), value });
+      i = k;
+      continue;
+    }
+
     // Column-aligned tabular listings render as code blocks.
     if (TABULAR_LINE.test(line)) {
       flushPara();
@@ -494,22 +692,6 @@ function parseReport(raw: string): ParsedReport {
       i++; continue;
     } else if (codeBuf.length) {
       flushCode();
-    }
-
-    const mm = line.match(METRIC_LINE);
-    // Guard against prose sentences with embedded colons being mis-parsed as
-    // metric rows. A real metric label is short, doesn't contain sentence
-    // terminators, and the value isn't a full sentence either.
-    const looksLikeMetric =
-      mm &&
-      mm[1].length <= 32 &&
-      !/\.\s/.test(mm[1]) &&
-      mm[2].length < 80 &&
-      !/\.\s+[A-Z]/.test(mm[2]);
-    if (looksLikeMetric) {
-      flushPara();
-      blocksTarget().push({ kind: "metric", label: mm![1].trim(), value: mm![2].trim() });
-      i++; continue;
     }
 
     // Regular prose line — accumulate into the current paragraph buffer.
@@ -710,6 +892,76 @@ function BlockRender({ block }: { block: Block }) {
       <pre className="my-5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-[12.5px] leading-relaxed text-slate-300">
         {block.raw}
       </pre>
+    );
+  }
+  if (block.kind === "coltable") {
+    return (
+      <div className="my-6 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40 print:break-inside-avoid">
+        <table className="w-full border-collapse text-[13.5px] tabular-nums">
+          <thead>
+            <tr className="border-b border-slate-800 bg-slate-900/60">
+              {block.header.map((h, i) => (
+                <th
+                  key={i}
+                  className="px-4 py-2.5 text-left font-medium text-slate-200 [overflow-wrap:anywhere]"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, r) => (
+              <tr key={r} className="border-b border-slate-800/60 last:border-b-0">
+                {row.map((cell, c) => (
+                  <td
+                    key={c}
+                    className="px-4 py-2 text-slate-300 [overflow-wrap:anywhere]"
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  if (block.kind === "kvtable") {
+    return (
+      <div className="my-5 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 print:break-inside-avoid">
+        <ul className="divide-y divide-slate-800/70 text-[13.5px]">
+          {block.items.map((item, i) => (
+            <li
+              key={i}
+              className="grid grid-cols-1 gap-x-5 gap-y-1 px-4 py-2.5 sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto] sm:items-baseline"
+            >
+              <code className="font-mono text-[12.5px] tabular-nums text-cyan-300/90 [overflow-wrap:anywhere]">
+                {item.key}
+              </code>
+              <span className="text-slate-300 [overflow-wrap:anywhere]">
+                {item.value}
+              </span>
+              {item.badge && (
+                <span className="justify-self-start rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-300 sm:justify-self-end">
+                  {item.badge}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+  if (block.kind === "minihead") {
+    return (
+      <div className="mt-8 mb-3 flex items-center gap-3 text-[13px]">
+        <span className="font-mono uppercase tracking-[0.18em] text-slate-400 [overflow-wrap:anywhere]">
+          {block.text}
+        </span>
+        <span className="h-px flex-1 bg-slate-800" />
+      </div>
     );
   }
   if (block.kind === "callout") {
