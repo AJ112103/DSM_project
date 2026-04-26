@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import dynamic from "next/dynamic";
@@ -849,7 +850,7 @@ export function ResidualCalendarEmbed({ caption }: { caption?: string }) {
 }
 
 export function ShapByRegimeEmbed({ caption }: { caption?: string }) {
-  const { data } = useQuery<{ features: any[]; regimes: number[] } | null>({
+  const { data } = useQuery<{ features: Array<{ label: string } & Record<string, any>>; regimes: number[] } | null>({
     queryKey: ["blog-shap-by-regime"],
     queryFn: () => fetchAPI("/api/forecast/shap-by-regime?top_n=12").catch(() => null),
     retry: false, staleTime: 3600000,
@@ -868,6 +869,30 @@ export function ShapByRegimeEmbed({ caption }: { caption?: string }) {
       <Plot
         data={traces as unknown as Plotly.Data[]}
         layout={{ ...PLOTLY_DARK_LAYOUT, height: 420, barmode: "group", margin: { l: 180, r: 20, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Mean |SHAP|", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, automargin: true }, legend: { orientation: "h" as const, x: 0, y: -0.15, font: { size: 10 } } } as Partial<Plotly.Layout>}
+        config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
+      />
+    </EmbedShell>
+  );
+}
+
+export function ShapSummaryEmbed({ caption }: { caption?: string }) {
+  const { data } = useQuery<{ features: Array<{ label: string; overall: number }> } | null>({
+    queryKey: ["blog-shap-summary"],
+    queryFn: () => fetchAPI("/api/forecast/shap-summary?top_n=15").catch(() => null),
+    retry: false, staleTime: 3600000,
+  });
+  if (!data?.features) return <EmbedShell caption={caption}><EmbedLoading label="SHAP summary" /></EmbedShell>;
+
+  return (
+    <EmbedShell caption={caption}>
+      <Plot
+        data={[{
+          type: "bar", orientation: "h" as const,
+          y: data.features.map(f => f.label).reverse(),
+          x: data.features.map(f => f.overall).reverse(),
+          marker: { color: CHART_COLORS[0] }
+        }] as Plotly.Data[]}
+        layout={{ ...PLOTLY_DARK_LAYOUT, height: 400, margin: { l: 180, r: 20, t: 30, b: 50 }, xaxis: { ...PLOTLY_DARK_LAYOUT.xaxis, title: { text: "Mean |SHAP| (Impact)", font: { size: 11 } } }, yaxis: { ...PLOTLY_DARK_LAYOUT.yaxis, automargin: true } } as Partial<Plotly.Layout>}
         config={PLOTLY_CONFIG} useResizeHandler style={{ width: "100%" }}
       />
     </EmbedShell>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import dynamic from "next/dynamic";
@@ -161,7 +162,7 @@ export default function DashboardPage() {
             />
           )}
           <ChartDescription>
-            <strong>Policy Transmission</strong>: Tracks the primary interbank target (WACMR) against the RBI's main policy corridors. Divergences indicate liquidity surplus or stress.
+            <strong>Policy Transmission</strong>: Tracks the primary interbank target (WACMR) against the RBI&apos;s main policy corridors. Divergences indicate liquidity surplus or stress.
           </ChartDescription>
         </ChartCard>
 
@@ -295,19 +296,19 @@ export default function DashboardPage() {
             <Plot
               data={[
                 {
-                  x: pcaData.data.map((d: any) => d.pc1),
-                  y: pcaData.data.map((d: any) => d.pc2),
-                  z: pcaData.data.map((d: any) => d.pc3),
+                  x: pcaData.data.map((d: { pc1: number }) => d.pc1),
+                  y: pcaData.data.map((d: { pc2: number }) => d.pc2),
+                  z: pcaData.data.map((d: { pc3: number }) => d.pc3),
                   mode: "markers",
                   type: "scatter3d",
                   marker: {
                     size: 4,
-                    color: pcaData.data.map((d: any) => d.regime_label),
+                    color: pcaData.data.map((d: { regime_label: number }) => d.regime_label),
                     colorscale: "Viridis",
                     opacity: 0.8,
                     line: { width: 0.5, color: "rgba(255,255,255,0.2)" },
                   },
-                  text: pcaData.data.map((d: any) => `${d.week_date}<br>WACMR: ${d.wacmr}%`),
+                  text: pcaData.data.map((d: { week_date: string; wacmr: number }) => `${d.week_date}<br>WACMR: ${d.wacmr}%`),
                   hovertemplate: "%{text}<extra></extra>",
                 },
               ]}
@@ -327,7 +328,7 @@ export default function DashboardPage() {
             />
           )}
           <ChartDescription>
-            <strong>Market DNA</strong>: A 3D projection of the 117-dimensional feature space. Clusters reveal how the "state" of the market fundamentally shifts over time.
+            <strong>Market DNA</strong>: A 3D projection of the 117-dimensional feature space. Clusters reveal how the &quot;state&quot; of the market fundamentally shifts over time.
           </ChartDescription>
         </ChartCard>
 
@@ -339,12 +340,12 @@ export default function DashboardPage() {
         >
           {shapRegimeData?.features && (
             <Plot
-              data={shapRegimeData.regimes.map((regime: string, idx: number) => ({
+              data={shapRegimeData.regimes.map((regime: number, idx: number) => ({
                 type: "bar" as const,
                 orientation: "h" as const,
                 name: `Regime ${regime}`,
-                y: shapRegimeData.features.map((f: any) => f.label),
-                x: shapRegimeData.features.map((f: any) => f[`regime_${regime}`]),
+                y: shapRegimeData.features.map((f: { label: string }) => f.label),
+                x: shapRegimeData.features.map((f: Record<string, any>) => f[`regime_${regime}`]),
                 marker: { color: CHART_COLORS[idx] },
               }))}
               layout={{
