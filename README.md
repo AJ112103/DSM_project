@@ -65,7 +65,7 @@ python3 scripts/stage6_news_nlp.py
 python3 backend/ml/train_and_save.py
 ```
 
-> **Note:** If you already have the CSV files in `data/` and `data_1/`, you can skip the Stage 1 fetch scripts and start from Stage 2.
+> **Note:** If you already have the CSV files in `data/raw/ndap/` and `data/raw/yfinance/`, you can skip the Stage 1 fetch scripts and start from Stage 2.
 
 ### 3. Start the App
 
@@ -105,6 +105,7 @@ The agent uses **Gemini 2.5 Flash** (Google AI Studio free tier — 1,500 req/da
 DSM_project/
 ├── scripts/                     # 7-stage ML pipeline
 │   ├── stage1_fetch_yfinance.py
+│   ├── stage1_scrape_ndap.py
 │   ├── stage1b_fetch_ndap.py
 │   ├── stage2_technical_indicators.py
 │   ├── stage3_alignment_db.py
@@ -137,9 +138,11 @@ DSM_project/
 ├── render.yaml                  # Backend deployment blueprint (Render)
 ├── frontend/vercel.json         # Frontend deployment config (Vercel)
 │
-├── data/                        # Raw NDAP CSVs
-├── data_1/                      # Yahoo Finance CSVs
-├── master_data/                 # Merged master dataset
+├── data/
+│   ├── raw/ndap/                # Raw NDAP/RBI CSVs
+│   ├── raw/yfinance/            # Nifty 50 and USD/INR weekly OHLCV
+│   └── processed/               # Merged weekly master datasets
+├── final/                       # Final report source, diagrams, and PDF
 ├── visualizations/              # Generated plots (12 PNGs)
 ├── dsm_project.db               # SQLite database (generated)
 └── report.txt                   # Full research report (generated)
@@ -156,7 +159,7 @@ DSM_project/
 | Regimes | `/regimes` | PCA projection + regime fact sheets |
 | Forecast & SHAP | `/forecast` | Walk-forward actual vs predicted, SHAP importance, waterfalls |
 | Dashboard | `/dashboard` | Interactive time series, correlation heatmap, distributions |
-| Data Explorer | `/explore` | Sortable, filterable table of 545 weeks × 119 columns |
+| Data Explorer | `/explore` | Sortable, filterable table of 545 weeks x 122 database columns |
 | News & NLP | `/news` | 75 curated policy events, sentiment timeline, category filters |
 | Report | `/report` | Full generated research report with TOC |
 
@@ -176,18 +179,20 @@ The `render.yaml` in the repo root defines a `web` service that installs
 4. Update the `CORS_ORIGINS` env var with your Vercel domain(s) — comma-separated, wildcards allowed (`https://*.vercel.app,https://your-domain.com`).
 
 The SQLite database (`dsm_project.db`, 577 KB) and model artifacts in
-`backend/ml/saved_model/` (≈ 1 MB) are committed to the repo so the Render
+`backend/ml/saved_model/` (about 1 MB) are committed to the repo so the Render
 instance has everything it needs at boot. No extra mounts required.
 
 ### Frontend (Vercel, free tier)
 
-1. `cd frontend && npx vercel --prod` — Vercel auto-detects Next.js.
+1. `cd frontend && npx vercel --prod` - Vercel auto-detects Next.js.
 2. In Vercel project settings, set environment variable `NEXT_PUBLIC_API_URL` to your Render URL.
 3. Optional: add a custom domain.
 
-The Next.js rewrite in `frontend/next.config.ts` proxies `/api/*` to
-`NEXT_PUBLIC_API_URL`, so the browser never sees cross-origin requests to the
-backend in production.
+The browser calls `NEXT_PUBLIC_API_URL` directly for API requests. If the
+environment variable is missing in production, `frontend/src/lib/api.ts` falls
+back to `https://wacmr-api.onrender.com`. `frontend/next.config.ts` only keeps a
+rewrite for `/visualizations/*`, so image tags can load backend-hosted generated
+figures from a relative path.
 
 ### Notes
 
@@ -199,5 +204,5 @@ backend in production.
 **Analysis:** Python, pandas, scikit-learn, XGBoost, SHAP, matplotlib, seaborn
 **Backend:** FastAPI, SQLite, Gemini 2.5 Flash with function-calling (7 typed tools incl. `run_sql`, `run_counterfactual`, `get_shap_contributions`)
 **Frontend:** Next.js 16, React 19, Tailwind CSS, Plotly.js, TanStack Query, Instrument Serif
-**Data:** 8 NDAP/RBI datasets + 2 Yahoo Finance datasets + 75 curated policy events (545 weeks, 119 features)
+**Data:** 8 NDAP/RBI datasets + 2 Yahoo Finance datasets + 75 curated policy events (545 weeks, 117 model features, 122 database columns)
 **Deploy:** Render (backend) + Vercel (frontend), both free tier

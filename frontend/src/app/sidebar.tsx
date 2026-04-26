@@ -21,6 +21,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { label: "Overview", icon: LayoutDashboard, href: "/" },
@@ -117,10 +118,13 @@ export default function Sidebar() {
       >
         {header}
         {nav}
-        <div className="border-t border-slate-800 p-2">
+        <div className="space-y-2 border-t border-slate-800 p-2">
+          <ThemeToggle compact={collapsed} />
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="flex w-full items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+            title={collapsed ? "Expand navigation" : "Collapse navigation"}
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -168,6 +172,9 @@ export default function Sidebar() {
             </button>
           </div>
           {nav}
+          <div className="border-t border-slate-800 p-3">
+            <ThemeToggle />
+          </div>
         </aside>
       </div>
     </>
