@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Info, AlertTriangle, Lightbulb, ArrowUpRight, ImageIcon } from "lucide-react";
 import { fetchAPI } from "@/lib/api";
-import { PLOTLY_DARK_LAYOUT, PLOTLY_CONFIG, CHART_COLORS } from "@/lib/plotly-theme";
+import { PLOTLY_DARK_LAYOUT, PLOTLY_CONFIG, CHART_COLORS, darkLayout } from "@/lib/plotly-theme";
 import { cn } from "@/lib/utils";
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
@@ -314,26 +314,33 @@ type SHAPFeature = { feature: string; label: string; mean_abs_shap: number };
 type SHAPResponse = { features: SHAPFeature[] };
 
 export function ShapBarEmbed({ topK = 12, caption }: { topK?: number; caption?: string }) {
-  const { data } = useQuery<SHAPResponse | null>({
+  const { data, isLoading, isError } = useQuery<SHAPResponse | null>({
     queryKey: ["blog-shap", topK],
     queryFn: () => fetchAPI(`/api/forecast/shap-summary`).catch(() => null),
     retry: false,
     staleTime: 60 * 60 * 1000,
   });
 
-  if (!data?.features?.length) {
+  const valid = Array.isArray(data?.features)
+    && data.features.length > 0
+    && data.features.every((f) => Number.isFinite(f.mean_abs_shap));
+
+  if (isLoading || !valid) {
     return (
       <figure className="my-8 flex h-80 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/40 text-xs text-slate-600">
-        Loading SHAP summary…
+        {isError
+          ? "SHAP summary unavailable (backend may be cold-starting)…"
+          : "Loading SHAP summary…"}
       </figure>
     );
   }
 
-  const top = data.features.slice(0, topK);
+  const top = data!.features.slice(0, topK);
   // Plotly renders bottom-to-top for horizontal bars, so reverse so the
   // biggest feature appears at the top.
   const labels = [...top.map((f) => f.label || f.feature)].reverse();
   const shap = [...top.map((f) => f.mean_abs_shap)].reverse();
+  const base = darkLayout();
 
   return (
     <figure className="my-8">
@@ -353,10 +360,23 @@ export function ShapBarEmbed({ topK = 12, caption }: { topK?: number; caption?: 
           }
           layout={
             {
-              ...PLOTLY_DARK_LAYOUT,
+              ...base,
               title: { text: `Top ${topK} features by mean |SHAP|`, font: { size: 13 } },
               height: 40 + topK * 22,
-              margin: { l: 160, r: 20, t: 40, b: 40 },
+              margin: { l: 180, r: 20, t: 40, b: 40 },
+              // Explicit axis types — Plotly's auto-detect can otherwise treat
+              // tiny numeric SHAP values as Unix-ms timestamps (epoch 1970).
+              xaxis: {
+                ...base.xaxis,
+                type: "linear",
+                title: { text: "Mean |SHAP|", font: { size: 11 } },
+                rangemode: "tozero",
+              },
+              yaxis: {
+                ...base.yaxis,
+                type: "category",
+                automargin: true,
+              },
             } as unknown as Partial<Plotly.Layout>
           }
           config={PLOTLY_CONFIG}

@@ -488,9 +488,18 @@ function parseReport(raw: string): ParsedReport {
     }
 
     const mm = line.match(METRIC_LINE);
-    if (mm && mm[2].length < 80) {
+    // Guard against prose sentences with embedded colons being mis-parsed as
+    // metric rows. A real metric label is short, doesn't contain sentence
+    // terminators, and the value isn't a full sentence either.
+    const looksLikeMetric =
+      mm &&
+      mm[1].length <= 32 &&
+      !/\.\s/.test(mm[1]) &&
+      mm[2].length < 80 &&
+      !/\.\s+[A-Z]/.test(mm[2]);
+    if (looksLikeMetric) {
       flushPara();
-      blocksTarget().push({ kind: "metric", label: mm[1].trim(), value: mm[2].trim() });
+      blocksTarget().push({ kind: "metric", label: mm![1].trim(), value: mm![2].trim() });
       i++; continue;
     }
 
@@ -541,12 +550,56 @@ function FigureBlock({
   );
 }
 
+// ─── ASCII box-drawing table parser ─────────────────────────────────────────
+// Source report.txt encodes tables with ┌─┐│├┼┤└┴┘ box characters. Rendering
+// them inside a <pre> looks broken in Geist Mono because `─` is ~7-8% wider
+// than ASCII chars, so the top/bottom borders extend past the column dividers
+// (visible as phantom empty columns). We parse the ASCII back into rows so
+// they can render as real <table> elements with CSS borders.
+
+interface ParsedTable {
+  header: string[];
+  rows: string[][];
+}
+
+function parseAsciiTable(raw: string): ParsedTable | null {
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim().length > 0);
+
+  // Data rows start with `│` (after optional leading whitespace).
+  const dataRows = lines
+    .filter((l) => /^\s*│/.test(l))
+    .map((l) =>
+      l
+        .trim()
+        .replace(/^│|│$/g, "")
+        .split("│")
+        .map((c) => c.trim())
+    );
+
+  if (dataRows.length < 2) return null;
+
+  const colCount = dataRows[0].length;
+  // All rows must have the same column count to be a clean table.
+  if (!dataRows.every((r) => r.length === colCount)) return null;
+
+  const [header, ...rows] = dataRows;
+  // Drop the alignment row if any (sometimes empty strings).
+  const cleanRows = rows.filter((r) => r.some((c) => c.length > 0));
+
+  return { header, rows: cleanRows };
+}
+
 // ─── Block renderers ────────────────────────────────────────────────────────
 
 function BlockRender({ block }: { block: Block }) {
   if (block.kind === "p") {
     return (
-      <p className="text-[17px] leading-[1.75] text-slate-300">{block.text}</p>
+      <p className="text-[17px] leading-[1.75] text-slate-300 [overflow-wrap:anywhere]">
+        {block.text}
+      </p>
     );
   }
   if (block.kind === "ul") {
@@ -569,14 +622,52 @@ function BlockRender({ block }: { block: Block }) {
   }
   if (block.kind === "metric") {
     return (
-      <div className="flex items-baseline gap-3 font-mono text-sm tabular-nums">
-        <span className="text-slate-500">{block.label}</span>
-        <span className="h-px flex-1 self-center border-t border-dashed border-slate-800" />
-        <span className="text-slate-200">{block.value}</span>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm tabular-nums">
+        <span className="min-w-0 break-words text-slate-500">{block.label}</span>
+        <span className="hidden h-px min-w-[2rem] flex-1 self-center border-t border-dashed border-slate-800 sm:block" />
+        <span className="min-w-0 break-words text-slate-200 [overflow-wrap:anywhere]">
+          {block.value}
+        </span>
       </div>
     );
   }
   if (block.kind === "table") {
+    const parsed = parseAsciiTable(block.raw);
+    if (parsed) {
+      return (
+        <div className="my-6 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/40 print:break-inside-avoid">
+          <table className="w-full border-collapse text-[13.5px] tabular-nums">
+            <thead>
+              <tr className="border-b border-slate-800 bg-slate-900/60">
+                {parsed.header.map((h, i) => (
+                  <th
+                    key={i}
+                    className="px-4 py-2.5 text-left font-medium text-slate-200"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {parsed.rows.map((row, r) => (
+                <tr
+                  key={r}
+                  className="border-b border-slate-800/60 last:border-b-0"
+                >
+                  {row.map((cell, c) => (
+                    <td key={c} className="px-4 py-2.5 text-slate-300">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+    // Fallback: keep the raw box-drawing if the parser bailed.
     return (
       <div className="my-5 overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 print:break-inside-avoid">
         <pre className="whitespace-pre font-mono text-[11.5px] leading-tight text-slate-300">
@@ -685,11 +776,13 @@ function BlockGroup({ blocks }: { blocks: Block[] }) {
             {g.items.map((m, j) => (
               <div
                 key={j}
-                className="flex items-baseline gap-3 font-mono text-sm tabular-nums"
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm tabular-nums"
               >
-                <span className="text-slate-400">{m.label}</span>
-                <span className="h-px flex-1 self-center border-t border-dashed border-slate-800" />
-                <span className="text-slate-100">{m.value}</span>
+                <span className="min-w-0 break-words text-slate-400">{m.label}</span>
+                <span className="hidden h-px min-w-[2rem] flex-1 self-center border-t border-dashed border-slate-800 sm:block" />
+                <span className="min-w-0 break-words text-slate-100 [overflow-wrap:anywhere]">
+                  {m.value}
+                </span>
               </div>
             ))}
           </div>
@@ -1068,13 +1161,13 @@ export default function ReportPage() {
                     subIdx === 0 ? "mt-2" : "mt-4"
                   )}
                 >
-                  <header className="mb-5 flex items-baseline gap-3">
+                  <header className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     {sub.number && (
-                      <span className="font-mono text-[11px] tracking-wider text-slate-500">
+                      <span className="shrink-0 font-mono text-[11px] tracking-wider text-slate-500">
                         §{sub.number}
                       </span>
                     )}
-                    <h3 className="text-[22px] font-semibold tracking-tight text-white">
+                    <h3 className="min-w-0 break-words text-[22px] font-semibold tracking-tight text-white [overflow-wrap:anywhere]">
                       {sub.title}
                     </h3>
                   </header>
