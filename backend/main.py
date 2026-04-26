@@ -109,7 +109,7 @@ def get_report():
     """Return the full report text."""
     if REPORT_PATH.exists():
         return {"content": REPORT_PATH.read_text(encoding="utf-8")}
-    return {"content": "Report not generated yet. Run stage5_synthesis.py."}
+    return {"content": "Report not found. Please ensure report.txt exists in the project root."}
 
 
 @app.get("/api/health")

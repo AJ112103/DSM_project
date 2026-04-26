@@ -5,7 +5,7 @@ Golden Window : 2014-01-10 (first Friday) → 2024-07-19 (last Friday before Jul
 Target        : 364-Day T-Bill Cut-Off Yield  (tb_I7504_10_364d → target_364d_yield)
 Granularity   : Weekly (Friday)
 Output        : dsm_project.db  →  table  Weekly_Macro_Master
-                master_data/Weekly_Macro_Master.csv  (backup only)
+                data/processed/Weekly_Macro_Master.csv  (backup only)
                 visualizations/eda_distributions.png
 """
 
@@ -20,12 +20,12 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 # ── Paths & Constants ─────────────────────────────────────────────────────────
-DATA_DIR    = Path("data")
-MASTER_DIR  = Path("master_data")
-VIS_DIR     = Path("visualizations")
-DB_PATH     = Path("dsm_project.db")
+DATA_DIR    = Path(__file__).resolve().parent.parent / "data/raw/ndap"
+MASTER_DIR  = Path(__file__).resolve().parent.parent / "data/processed"
+VIS_DIR     = Path(__file__).resolve().parent.parent / "visualizations"
+DB_PATH     = Path(__file__).resolve().parent.parent / "dsm_project.db"
 TABLE_NAME  = "Weekly_Macro_Master"
-OHLC_PATH   = Path("data/master_ohlc.csv")   # Nifty50 + USD/INR + technical indicators
+OHLC_PATH   = Path(__file__).resolve().parent.parent / "data/raw/ndap/master_ohlc.csv"   # Nifty50 + USD/INR + technical indicators
 
 WINDOW_START = "2014-01-10"   # First Friday in Jan 2014
 WINDOW_END   = "2024-07-19"   # Last full Friday before RBI-LA cutoff

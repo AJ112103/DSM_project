@@ -190,16 +190,13 @@ export default function RegimesPage() {
           <div className="skeleton h-16 rounded-lg" />
         ) : pcaData ? (
           (() => {
-            const points = pcaData.points || pcaData;
+            const points = pcaData.data || [];
             let dates: string[] = [];
             let regimes: number[] = [];
 
             if (Array.isArray(points) && points.length > 0) {
-              dates = points.map((p: { date?: string }) => p.date || "");
-              regimes = points.map((p: { regime: number }) => p.regime);
-            } else {
-              dates = pcaData.dates || pcaData.index || [];
-              regimes = pcaData.regime || pcaData.regimes || [];
+              dates = points.map((p: { week_date: string }) => p.week_date);
+              regimes = points.map((p: { regime_label: number }) => p.regime_label);
             }
 
             if (regimes.length === 0) {

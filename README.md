@@ -42,25 +42,24 @@ cd frontend && npm install && cd ..
 These steps build the database, train models, and generate all artifacts. Run them in order:
 
 ```bash
-# Stage 1: Fetch data from NDAP API + Yahoo Finance
-python3 stage1_fetch_api_ndap.py
-python3 stage_1_yfin.py
-python3 stage_1b_technical_indicators.py
+# Stage 1: Fetch data from Yahoo Finance + NDAP API
+python3 scripts/stage1_fetch_yfinance.py
+python3 scripts/stage1b_fetch_ndap.py
 
-# Stage 2: Align data, build SQLite DB, EDA plots
-python3 stage2_alignment_db.py
+# Stage 2: Technical indicators
+python3 scripts/stage2_technical_indicators.py
 
-# Stage 3: PCA + K-Means regime discovery
-python3 stage3_advanced_eda.py
+# Stage 3: Alignment, SQLite DB & EDA
+python3 scripts/stage3_alignment_db.py
 
-# Stage 4: XGBoost walk-forward CV + SHAP analysis
-python3 stage4_supervised_ml.py
+# Stage 4: Regime discovery (PCA + K-Means)
+python3 scripts/stage4_regime_discovery.py
 
-# Stage 5: Generate report
-python3 stage5_synthesis.py
+# Stage 5: Supervised ML (XGBoost + SHAP)
+python3 scripts/stage5_supervised_ml.py
 
-# Stage 6: NLP news sentiment analysis
-python3 stage6_news_nlp.py
+# Stage 6: NLP News Sentiment
+python3 scripts/stage6_news_nlp.py
 
 # Save model artifacts for the web dashboard
 python3 backend/ml/train_and_save.py
@@ -104,14 +103,14 @@ The agent uses **Gemini 2.5 Flash** (Google AI Studio free tier — 1,500 req/da
 
 ```
 DSM_project/
-├── stage1_fetch_api_ndap.py     # NDAP API data fetcher (8 RBI datasets)
-├── stage_1_yfin.py              # Yahoo Finance data (Nifty 50, USD/INR)
-├── stage_1b_technical_indicators.py  # Technical indicators (MACD, TSI, etc.)
-├── stage2_alignment_db.py       # Data alignment + SQLite DB + EDA
-├── stage3_advanced_eda.py       # PCA + K-Means regime discovery
-├── stage4_supervised_ml.py      # XGBoost + SHAP analysis
-├── stage5_synthesis.py          # Report generation
-├── stage6_news_nlp.py           # NLP news sentiment pipeline
+├── scripts/                     # 7-stage ML pipeline
+│   ├── stage1_fetch_yfinance.py
+│   ├── stage1b_fetch_ndap.py
+│   ├── stage2_technical_indicators.py
+│   ├── stage3_alignment_db.py
+│   ├── stage4_regime_discovery.py
+│   ├── stage5_supervised_ml.py
+│   └── stage6_news_nlp.py
 │
 ├── backend/                     # FastAPI REST API
 │   ├── main.py                  # App entry point (CORS via env var)

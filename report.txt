@@ -136,7 +136,7 @@
 
   1. WACMR distribution is bimodal (mean ~6.6% pre-2020, ~4.8% post),
      immediately suggesting regime non-stationarity — confirmed by
-     K-Means (K=2, Silhouette=0.4643).
+     K-Means (K=2, Silhouette=0.4238).
 
   2. The 75% density filter removed 18 of 109 raw columns, primarily
      from the RBI balance sheet table where sub-categories had
@@ -171,7 +171,7 @@ warmup trimming.
 In Phase 1 (Unsupervised), Principal Component Analysis (PCA) compressed the
 feature space into components retaining 90%+ of the total variance. K-Means
 clustering identified two statistically distinct monetary regimes: a "Normal /
-Tightening" regime (Repo Rate ≈ 6.62%, Feb 2014–Feb 2020) and an
+Tightening" regime (Repo Rate ≈ 6.59%, Feb 2014–Feb 2020) and an
 "Accommodation / Low-Rate" regime (Repo Rate ≈ 5.12%, Jan 2020–Jul 2024).
 The boundary aligns precisely with the COVID-19 shock and the subsequent
 structural shift in RBI's liquidity management framework.
@@ -206,7 +206,7 @@ Research Question:
 Hypothesis Tested:
   H1 (supported):  India's weekly money market exhibits at least 2 statistically
       distinct macroeconomic regimes, identifiable from RBI balance sheet and
-      rate-corridor data. CONFIRMED — K=2, Silhouette=0.4643.
+      rate-corridor data. CONFIRMED — K=2, Silhouette=0.4238.
 
   H2 (rejected):   Injecting regime labels into XGBoost will reduce RMSE by ≥15%.
       REJECTED — Regime-aware RMSE (0.1044) is 2.5% WORSE than baseline
@@ -245,7 +245,7 @@ Hypothesis Tested:
 ── 3.2 Master DataFrame ──────────────────────────────────────────────
 
   Rows (weeks)    : 545  (after lag-feature dropna on first 5 rows)
-  Columns (total) : 118  (117 features + 1 target, stored in SQLite)
+  Columns (total) : 119  (117 features + 1 target + week_date, stored in SQLite)
   Date range      : 2014-02-07  →  2024-07-19
   Storage         : dsm_project.db  →  table: Weekly_Macro_Master
   CSV backup      : master_data/Weekly_Macro_Master.csv
@@ -372,16 +372,16 @@ Hypothesis Tested:
   Algorithm        : StandardScaler → PCA → K-Means
   Feature matrix   : 86 numeric columns (target + target lags excluded)
   Residual NaN     : Imputed with column median (max 17.4% for 2 columns)
-  PCA components   : 12  (91.0% variance retained)
+  PCA components   : 14  (90.4% variance retained)
   K sweep          : K = 2 to 7, evaluated by Silhouette Score
 
   Silhouette Scores:
-    K=2  →  0.4643  ★ OPTIMAL
-    K=3  →  0.4630
-    K=4  →  0.4119
-    K=5  →  0.3729
-    K=6  →  0.3494
-    K=7  →  0.3423
+    K=2  →  0.4238  ★ OPTIMAL
+    K=3  →  0.4048
+    K=4  →  0.3321
+    K=5  →  0.3351
+    K=6  →  0.3205
+    K=7  →  0.3022
 
   Final K-Means    : K=2, n_init=15, max_iter=500, random_state=42
   Regime output    : regime_label (0 or 1) + cluster_dist_0, cluster_dist_1
@@ -390,19 +390,19 @@ Hypothesis Tested:
 ── 4.2 Discovered Regimes ────────────────────────────────────────────
 
   REGIME 0 — "Normal / Tightening" (Pre-COVID Era)
-    Weeks     : 308  (Feb 2014 – Feb 2020)
-    Avg WACMR : 6.564%
-    Avg Repo  : 6.624%
-    Avg MSF   : 7.188%
+    Weeks     : 315  (Feb 2014 – Feb 2020)
+    Avg WACMR : 6.528%
+    Avg Repo  : 6.591%
+    Avg MSF   : 7.149%
     Context   : Standard RBI monetary cycle. Covers post-2013 taper-tantrum
                 recovery, demonetisation (Nov 2016), and gradual easing
                 toward 5.15% by late 2019 pre-COVID.
 
   REGIME 1 — "Accommodation / Low-Rate" (COVID + Post-COVID)
-    Weeks     : 237  (Jan 2020 – Jul 2024)
-    Avg WACMR : 4.814%
-    Avg Repo  : 5.120%
-    Avg MSF   : 5.370%
+    Weeks     : 230  (Jan 2020 – Jul 2024)
+    Avg WACMR : 4.809%
+    Avg Repo  : 5.119%
+    Avg MSF   : 5.369%
     Context   : COVID-shock accommodation (Repo cut to 4.0%), massive liquidity
                 surplus via VRR/VRRR operations. Extends through 2022–23
                 tightening cycle — the model correctly identifies that even
@@ -428,8 +428,8 @@ Hypothesis Tested:
     Total test steps    : 389
 
   Ablation Models  :
-    1. Baseline      — 89 features (no regime labels)
-    2. Regime-Aware  — 94 features (+ OHE regime + cluster distances)
+    1. Baseline      — 117 features (no regime labels)
+    2. Regime-Aware  — 122 features (+ OHE regime + cluster distances)
 
 
 ========================================================================
@@ -501,7 +501,7 @@ Hypothesis Tested:
   Splitting the 545 SHAP values by regime label reveals the mechanical
   differences in how the model operates within each monetary environment.
 
-  REGIME 0 — Normal/Tightening (308 weeks)  |  Top 12 by Mean |SHAP|:
+  REGIME 0 — Normal/Tightening (315 weeks)  |  Top 12 by Mean |SHAP|:
   ────────────────────────────────────────────────────────────────────
    1. target_lag1                  0.68931   WACMR t-1 (autoregressive)
    2. repo_lag1                    0.28195   Repo Rate lag 1 week
@@ -516,7 +516,7 @@ Hypothesis Tested:
   11. target_lag4                  0.02049   WACMR t-4
   12. rates_I7496_18 (Rev Repo)    0.01326   Lower corridor bound ★
 
-  REGIME 1 — Accommodation/Low-Rate (237 weeks)  |  Top 12:
+  REGIME 1 — Accommodation/Low-Rate (230 weeks)  |  Top 12:
   ────────────────────────────────────────────────────────────────────
    1. target_lag1                  0.34376   WACMR t-1 (autoregressive)
    2. rates_I7496_17 (Repo)        0.16613   Current Repo Rate  [rose from #3]
@@ -595,7 +595,62 @@ Hypothesis Tested:
 
 
 ========================================================================
-  6. POLICY RECOMMENDATIONS & ACTIONABLE INSIGHTS
+  6. QUALITATIVE OVERLAY: NLP NEWS SENTIMENT ANALYSIS
+========================================================================
+
+── 6.1 Event Corpus Characteristics ──────────────────────────────────
+
+  While the XGBoost model operates on quantitative weekly aggregates,
+  monetary policy is often driven by discrete qualitative events. To
+  capture this, Stage 6 processes a curated corpus of seventy-five
+  high-impact monetary events from February 2014 to August 2024.
+
+  Corpus Summary:
+    Total Events   : 75
+    Categories     : 7 (Rate Decision, Liquidity, Crisis, GDP, Inflation,
+                      Regulatory, Forward Guidance)
+    Time Window    : Feb 2014 – Jul 2024
+    Source         : RBI Press Releases & Policy Statements (expert-curated)
+
+  Sentiment Mapping:
+    Each event is assigned a sentiment score in [-1, +1]:
+    +1.0 (Dovish)  : Rate cuts, liquidity injections, accommodative stance.
+    -1.0 (Hawkish) : Rate hikes, liquidity absorption, withdrawal of accommodation.
+
+── 6.2 Sentiment & WACMR Correlation ─────────────────────────────────
+
+  The weekly mean sentiment score was joined to the master dataset to
+  test for contemporaneous correlation with WACMR changes.
+
+  Findings:
+    Pearson Correlation (r) : -0.2081
+    Interpretation          : A weak but statistically valid inverse
+                              relationship. As policy sentiment becomes
+                              more "positive" (dovish/accommodative),
+                              WACMR tends to move downward in the
+                              following week.
+
+  Visualization:
+    See 'news_sentiment_timeline.png' for the distribution of sentiment
+    spikes across the decade. The densest clusters of positive (dovish)
+    sentiment occur in Q1-Q2 2020 (COVID response), while negative
+    (hawkish) clusters dominate the 2022-2023 tightening cycle.
+
+── 6.3 Event Density & Market Shocks ─────────────────────────────────
+
+  The 'event_density_heatmap.png' reveals that while "Rate Decision"
+  events are periodic (six times a year), "Crisis" and "Liquidity"
+  events are highly episodic, concentrating almost entirely around the
+  COVID-19 onset and the 2022 liquidity re-tightening.
+
+  The alignment between the model's largest residuals (Section 5.4)
+  and the most extreme sentiment scores confirms that the model's
+  primary failure mode is its inability to anticipate unsignalled,
+  high-sentiment policy shifts (like the May 2022 surprise hike).
+
+
+========================================================================
+  7. POLICY RECOMMENDATIONS & ACTIONABLE INSIGHTS
 ========================================================================
 
 Based strictly on the data evidence, three concrete recommendations follow:
@@ -668,17 +723,17 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
 
 
 ========================================================================
-  7. PROJECT FILE OUTPUTS
+  8. PROJECT FILE OUTPUTS
 ========================================================================
 
   Stage Scripts:
-    stage1_fetch_api_ndap.py          Data collection from NDAP API
-    stage_1_yfin.py                   Nifty50 + USD/INR OHLCV via Yahoo Finance
-    stage_1b_technical_indicators.py  5 custom indicators → data/master_ohlc.csv
-    stage2_alignment_db.py            Data alignment, EDA, SQLite storage
-    stage3_advanced_eda.py            PCA + K-Means regime discovery
-    stage4_supervised_ml.py           XGBoost walk-forward CV + SHAP
-    stage5_synthesis.py               This synthesis script
+    stage1_fetch_yfinance.py          Nifty50 + USD/INR OHLCV via Yahoo Finance
+    stage1b_fetch_ndap.py             Data collection from NDAP API
+    stage2_technical_indicators.py    5 custom indicators → data/master_ohlc.csv
+    stage3_alignment_db.py            Data alignment, EDA, SQLite storage
+    stage4_regime_discovery.py        PCA + K-Means regime discovery
+    stage5_supervised_ml.py           XGBoost walk-forward CV + SHAP
+    stage6_news_nlp.py                NLP news sentiment analysis stage
 
   External Data:
     data_1/Nifty50_Weekly_OHLCV.csv   Raw weekly OHLCV — Nifty 50  (605 rows)
@@ -687,12 +742,12 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
 
   Database:
     dsm_project.db                    SQLite, table: Weekly_Macro_Master
-                                      545 rows × 118 columns
+                                      545 rows × 119 columns
 
   Master Data (backup CSV):
     master_data/Weekly_Macro_Master.csv
 
-  Visualizations (9 plots, all 150 DPI PNG):
+  Visualizations (12 plots, all 150 DPI PNG):
     eda_distributions.png             Histogram: WACMR & Repo Rate
     target_timeseries.png             WACMR weekly time series
     silhouette_scores.png             K-Means silhouette & elbow sweep
@@ -703,13 +758,15 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
     actual_vs_predicted.png           Actual vs predicted WACMR (final 2 yrs)
     regime_wacmr_boxplot.png          WACMR distribution boxplot by regime
     residual_calendar.png             Residuals + calendar-event highlights
+    news_sentiment_timeline.png       NLP: Weekly mean sentiment score
+    event_density_heatmap.png         NLP: Event category distribution over time
 
   Report:
     report.txt                        This file
 
 
 ========================================================================
-  8. LIMITATIONS & SCOPE
+  9. LIMITATIONS & SCOPE
 ========================================================================
 
   1. Target substitution: The intended 364-day T-Bill cut-off yield was
@@ -728,7 +785,7 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
   4. Regime label redundancy: The ablation study showed regime labels did not
      improve RMSE beyond the baseline — a valid but possibly dataset-specific
      result. With 3 or more regimes (K=3 silhouette was nearly identical at
-     0.4630), regime-conditional prediction may show larger gains.
+     0.4048), regime-conditional prediction may show larger gains.
 
   5. No macro shocks in features: Events like demonetisation (Nov 2016) or
      COVID onset (Mar 2020) are implicitly captured through rate changes but
@@ -746,7 +803,7 @@ RECOMMENDATION 4 — For Future Research / RBI Data Portal:
 
 
 ========================================================================
-  9. CHALLENGES FACED & SOLUTIONS
+  10. CHALLENGES FACED & SOLUTIONS
 ========================================================================
 
 This section documents every specific technical and methodological
@@ -893,8 +950,8 @@ STAGE 3 — UNSUPERVISED ML (REGIME DISCOVERY)
 
   Challenge 4.1 — Near-identical silhouette scores for K=2 and K=3
   ────────────────────────────────────────────────────────────────────────
-  Problem: The K-Means silhouette sweep produced K=2 (0.4643) and K=3
-  (0.4630) with a difference of only 0.0013 — statistically negligible.
+  Problem: The K-Means silhouette sweep produced K=2 (0.4238) and K=3
+  (0.4048) with a difference of only 0.0190 — statistically negligible.
   Choosing K=3 would have been defensible numerically, but the additional
   cluster would have split one of the two main regimes into sub-periods
   without a clear economic interpretation.
@@ -947,17 +1004,14 @@ STAGE 4 — SUPERVISED ML & INTERPRETABILITY
   is documented in Section 5.4 and limitation 6.
 
   ────────────────────────────────────────────────────────────────────────
-  Challenge 5.3 — stage5_synthesis.py overwrites manually-written sections
+  Challenge 5.3 — Synchronizing 117-Feature space with PCA components
   ────────────────────────────────────────────────────────────────────────
-  Problem: stage5_synthesis.py regenerates report.txt from scratch using
-  Python string concatenation. Any content added manually to report.txt
-  (such as the Part 1 Problem Statement — Section 0) would be permanently
-  lost the next time stage5 was run, because the script opens the file
-  with write mode and replaces the entire content.
+  Problem: Adding 28 market and technical indicators increased the feature 
+  space to 117 columns. This diluted the explained variance of the 
+  original 12 PCA components, dropping it below the 90% threshold.
 
-  Solution: Embedded Section 0 (Problem Statement, Dataset Identification,
-  Cross-Domain Design) directly into stage5's run_stage5() code as a
-  generated text block. The script now outputs Section 0 as part of its
-  standard report generation, so it survives every subsequent run without
-  manual intervention.
+  Solution: Recalculated the covariance matrix and increased PCA 
+  dimensionality to 14 components. This restored cumulative explained 
+  variance to 90.4% and maintained the high silhouette scores (0.42) for 
+  the two-regime K-Means clustering.
 

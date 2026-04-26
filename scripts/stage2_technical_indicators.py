@@ -2,7 +2,7 @@
 """
 Stage 1b — Technical Indicators → master_ohlc.csv
 ===================================================
-Loads the two OHLCV CSVs from data_1/, applies all five custom indicators
+Loads the two OHLCV CSVs from data/raw/yfinance/, applies all five custom indicators
 to both Nifty 50 and USD/INR, then joins them into a single weekly master
 file saved at data/master_ohlc.csv.
 
@@ -24,7 +24,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 # ── Make sure project modules are importable ────────────────────────────────
-PROJECT_DIR = Path(__file__).parent
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
 from technical_indicators.impulsemacd     import macd          as impulse_macd
@@ -34,8 +34,8 @@ from technical_indicators.tsi             import tsi
 from technical_indicators.velocity_indicator import calculate_float as velocity
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-DATA1_DIR = PROJECT_DIR / "data_1"
-OUT_DIR   = PROJECT_DIR / "data"
+DATA1_DIR = PROJECT_DIR / "data/raw/yfinance"
+OUT_DIR   = PROJECT_DIR / "data/raw/ndap"
 OUT_PATH  = OUT_DIR / "master_ohlc.csv"
 
 # ── Window trim (matches NDAP master panel) ──────────────────────────────────

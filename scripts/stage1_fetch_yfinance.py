@@ -6,8 +6,8 @@ Fetches weekly OHLCV data for:
   - USD/INR        (USDINR=X) — forex / RBI FX intervention proxy
 
 Window : 2014-01-01 → 2024-08-01  (matches master panel Feb 2014 – Jul 2024)
-Output : data_1/Nifty50_Weekly_OHLCV.csv
-         data_1/USDINR_Weekly_OHLCV.csv
+Output : data/raw/yfinance/Nifty50_Weekly_OHLCV.csv
+         data/raw/yfinance/USDINR_Weekly_OHLCV.csv
 
 After this step, add your technical indicators and save the enriched
 files into data/ — then signal to proceed with stage 2 onwards.
@@ -22,8 +22,8 @@ from pathlib import Path
 
 # ── Config ───────────────────────────────────────────────────────────────────
 
-PROJECT_DIR = Path(__file__).parent
-OUT_DIR = PROJECT_DIR / "data_1"
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+OUT_DIR = PROJECT_DIR / "data/raw/yfinance"
 OUT_DIR.mkdir(exist_ok=True)
 
 START = "2013-01-01"   # 52-week buffer before window for indicator warmup

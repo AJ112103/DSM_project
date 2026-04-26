@@ -33,7 +33,7 @@ from sklearn.preprocessing import StandardScaler
 # Resolve project root relative to this file so the script works from any cwd.
 _THIS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = _THIS_DIR.parent.parent
-CSV_PATH = PROJECT_ROOT / "master_data" / "Weekly_Macro_Master.csv"
+CSV_PATH = PROJECT_ROOT / "data" / "processed" / "Weekly_Macro_Master.csv"
 SAVE_DIR = _THIS_DIR / "saved_model"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 

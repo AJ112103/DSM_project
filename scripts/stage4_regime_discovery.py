@@ -23,9 +23,9 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 # ── Config ────────────────────────────────────────────────────────────────────
-DB_PATH    = Path("dsm_project.db")
+DB_PATH    = Path(__file__).resolve().parent.parent / "dsm_project.db"
 TABLE_NAME = "Weekly_Macro_Master"
-VIS_DIR    = Path("visualizations")
+VIS_DIR    = Path(__file__).resolve().parent.parent / "visualizations"
 VIS_DIR.mkdir(exist_ok=True)
 
 TARGET_COL    = "target_wacmr"    # Weighted Average Call Money Rate (%)

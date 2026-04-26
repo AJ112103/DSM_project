@@ -17,8 +17,8 @@ import pandas as pd
 from pathlib import Path
 
 # ── Configuration ───────────────────────────────────────────────────────────
-PROJECT_DIR = Path(__file__).parent
-DOWNLOAD_DIR = PROJECT_DIR / "data"
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+DOWNLOAD_DIR = PROJECT_DIR / "data/raw/ndap"
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
 # The base API URLs provided by the user, we will strip `&pageno=X` and append it dynamically

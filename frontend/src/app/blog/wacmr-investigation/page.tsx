@@ -95,7 +95,7 @@ export default function WacmrInvestigationPost() {
         <dl className="mt-6 grid grid-cols-2 divide-slate-800 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-5 sm:divide-x">
           {[
             { k: "Weeks", v: "545" },
-            { k: "Features", v: "119" },
+            { k: "Features", v: "117" },
             { k: "Regimes", v: "2" },
             { k: "RMSE", v: "0.102" },
             { k: "DA", v: "70.9%" },
@@ -213,7 +213,7 @@ export default function WacmrInvestigationPost() {
                 caption="Table 1 — The 10-dataset master panel. All 10 sources are aligned onto a canonical Friday grid between Feb 2014 and Jul 2024 (545 weekly rows)."
               />
 
-              <CodeBlock lang="python">{`# stage1_fetch_api_ndap.py — excerpt
+              <CodeBlock lang="python">{`# stage1b_fetch_ndap.py — excerpt
 import requests
 
 NDAP_DATASETS = {
@@ -250,10 +250,10 @@ def fetch(src_id: str):
                 <p>
                   Every figure in this post is generated from the raw data by
                   the pipeline in the repo. <code>stage1_*</code> fetches and
-                  caches; <code>stage2_alignment_db.py</code> reshapes to a
+                  caches; <code>stage3_alignment_db.py</code> reshapes to a
                   weekly grid and writes the SQLite database the dashboard
-                  reads; <code>stage3_advanced_eda.py</code> fits the regime
-                  model; <code>stage4_supervised_ml.py</code> trains XGBoost
+                  reads; <code>stage4_regime_discovery.py</code> fits the regime
+                  model; <code>stage5_supervised_ml.py</code> trains XGBoost
                   with walk-forward validation.
                 </p>
               </Callout>
@@ -299,7 +299,7 @@ def fetch(src_id: str):
 
               <StatGrid>
                 <Stat value="545" label="Weekly observations" tone="cyan" />
-                <Stat value="119" label="Engineered features" tone="cyan" />
+                <Stat value="117" label="Engineered features" tone="cyan" />
                 <Stat value="10" label="Source datasets" tone="cyan" />
                 <Stat value="75" label="Curated policy events" tone="cyan" />
               </StatGrid>
@@ -330,7 +330,7 @@ def fetch(src_id: str):
                 alt="Silhouette and elbow scan across k"
               />
 
-              <CodeBlock lang="python">{`# stage3_advanced_eda.py — excerpt
+              <CodeBlock lang="python">{`# stage4_regime_discovery.py — excerpt
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -356,10 +356,10 @@ optimal_k = max(scores, key=scores.get)   # -> 2`}</CodeBlock>
 
               <Callout tone="finding" title="Finding #1 — The regime break is real, not cosmetic">
                 <p>
-                  Regime <strong>1</strong> (Normal / Tightening) spans
-                  2014-02-07 → 2020-03-06, 308 weeks, mean WACMR ≈ 6.5%. Regime{" "}
+                  Regime <strong>1</strong> (Tightening) spans
+                  2014-02-07 → 2020-03-06, 315 weeks, mean WACMR ≈ 6.53%. Regime{" "}
                   <strong>0</strong> (Accommodation) spans 2020-03-06 →
-                  2024-07-19, 237 weeks, mean WACMR ≈ 4.8%. There is{" "}
+                  2024-07-19, 230 weeks, mean WACMR ≈ 4.81%. There is{" "}
                   <em>one</em> transition in the entire sample — not a drift, a
                   step.
                 </p>
@@ -367,7 +367,7 @@ optimal_k = max(scores, key=scores.get)   # -> 2`}</CodeBlock>
 
               <Figure
                 src="/visualizations/regime_timeseries.png"
-                caption="WACMR with regime bands overlaid. The green region (Regime 1) is the pre-COVID tightening era; the amber region (Regime 0) is the post-COVID accommodation regime that outlasted the pandemic."
+                caption="WACMR with regime bands overlaid. The amber region (Regime 1) is the pre-COVID tightening era; the green region (Regime 0) is the post-COVID accommodation regime that outlasted the pandemic."
                 alt="WACMR regime-shaded time series"
               />
 
@@ -416,7 +416,7 @@ optimal_k = max(scores, key=scores.get)   # -> 2`}</CodeBlock>
                 only honest way to validate a time-series model.
               </p>
 
-              <CodeBlock lang="python">{`# stage4_supervised_ml.py — expanding-window CV
+              <CodeBlock lang="python">{`# stage5_supervised_ml.py — expanding-window CV
 for t in range(MIN_TRAIN_SIZE, n):
     X_train, y_train = X[:t], y[:t]
     model = XGBRegressor(

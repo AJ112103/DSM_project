@@ -108,7 +108,7 @@ function HeroChart() {
     y0: 0,
     y1: 1,
     fillcolor:
-      seg.regime === 0 ? "rgba(16, 185, 129, 0.06)" : "rgba(245, 158, 11, 0.06)",
+      seg.regime === 1 ? "rgba(245, 158, 11, 0.06)" : "rgba(16, 185, 129, 0.06)",
     line: { width: 0 },
     layer: "below",
   }));
@@ -201,7 +201,7 @@ const TONE_CLASSES: Record<string, string> = {
 
 const METHOD_STEPS = [
   { icon: Database, label: "Ingest", detail: "8 RBI datasets + Yahoo Finance, aligned to a Friday weekly grid" },
-  { icon: LineChart, label: "Engineer", detail: "Technical indicators, lags, spreads — 119 features" },
+  { icon: LineChart, label: "Engineer", detail: "Technical indicators, lags, spreads — 117 features" },
   { icon: Layers, label: "Regimes", detail: "PCA → K-Means (k=2) with silhouette validation" },
   { icon: TrendingUp, label: "Forecast", detail: "XGBoost, expanding-window walk-forward" },
   { icon: BarChart3, label: "Explain", detail: "SHAP TreeExplainer per week + aggregate" },
@@ -312,7 +312,7 @@ export default function OverviewPage() {
               <span className="italic text-cyan-300">one week ahead?</span>
             </h1>
             <p className="max-w-2xl text-lg leading-relaxed text-slate-400">
-              Ten years, 545 weeks, 119 features, two monetary-policy regimes, and
+              Ten years, 545 weeks, 117 features, two monetary-policy regimes, and
               one overnight rate — the WACMR — that quietly settles every bank&apos;s
               cash book. We combined NDAP RBI data with market prices and 75 curated
               policy events to build a forecasting model with{" "}
@@ -339,7 +339,7 @@ export default function OverviewPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-3">
             <HeroChart />
             <div className="px-1 pt-2 text-[10px] text-slate-500">
-              WACMR (cyan fill) vs Repo Rate (dashed). Amber bands are Regime 1 (pre-COVID tightening, Feb 2014–Mar 2020); green bands are Regime 0 (post-COVID accommodation, Mar 2020–Jul 2024).
+              WACMR (cyan fill) vs Repo Rate (dashed). Amber bands are Regime 1 (Tightening era, 315 weeks); green bands are Regime 0 (Accommodation era, 230 weeks).
             </div>
           </div>
         </div>

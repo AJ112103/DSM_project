@@ -9,7 +9,7 @@ Target variable: Weighted Average Call Money Rate (WACMR)
 
 Outputs
 -------
-- master_data/Weekly_Macro_Master_NLP.csv   (enriched master data)
+- data/processed/Weekly_Macro_Master_NLP.csv   (enriched master data)
 - backend/nlp/news_data/events.json         (events database)
 - visualizations/news_sentiment_timeline.png
 - visualizations/event_density_heatmap.png
@@ -30,7 +30,7 @@ import seaborn as sns
 
 warnings.filterwarnings("ignore")
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ====================================================================
 # 1. Curated Event Database  (~75 major Indian monetary-policy events)
@@ -618,8 +618,8 @@ def print_summary(master: pd.DataFrame, events_df: pd.DataFrame) -> None:
 # ====================================================================
 
 def main() -> None:
-    master_csv = BASE_DIR / "master_data" / "Weekly_Macro_Master.csv"
-    nlp_csv = BASE_DIR / "master_data" / "Weekly_Macro_Master_NLP.csv"
+    master_csv = BASE_DIR / "data/processed" / "Weekly_Macro_Master.csv"
+    nlp_csv = BASE_DIR / "data/processed" / "Weekly_Macro_Master_NLP.csv"
     events_json_dir = BASE_DIR / "backend" / "nlp" / "news_data"
     vis_dir = BASE_DIR / "visualizations"
 

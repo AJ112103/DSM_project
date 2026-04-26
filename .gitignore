@@ -33,3 +33,13 @@ frontend/inspect_report.mjs
 *.npy
 !backend/ml/saved_model/*.pkl
 !backend/ml/saved_model/*.npy
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
