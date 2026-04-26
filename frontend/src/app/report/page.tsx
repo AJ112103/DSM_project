@@ -30,7 +30,7 @@ type Block =
   | { kind: "coltable"; header: string[]; rows: string[][] }
   | { kind: "kvtable"; items: { key: string; value: string; badge?: string }[] }
   | { kind: "minihead"; text: string }
-  | { kind: "labelparagraph"; label: string; body: string[] }
+  | { kind: "labelparagraph"; label: string; body: string[]; badge?: string }
   | { kind: "cardOpen"; title: string; subtitle?: string }
   | { kind: "cardClose" }
   | { kind: "code"; raw: string };
@@ -200,6 +200,14 @@ const LABELED_PROSE_LABELS = [
 const LABELED_PROSE = new RegExp(
   `^(\\s+)(${LABELED_PROSE_LABELS.join("|")}):\\s+(\\S.*)$`
 );
+// Hypothesis lines: `  H1 (supported): description …`, `  H4 (new finding): …`
+const HYPOTHESIS_LINE = /^(\s+)(H\d+)\s+\(([^)]+)\):\s+(\S.*)$/;
+// Objective lines: `  Objective 2 (Supervised): description …`
+const OBJECTIVE_LINE = /^(\s+)(Objective\s+\d+)\s+\(([^)]+)\):\s+(\S.*)$/;
+// File-section heading: a line that is JUST a labelled heading with a colon
+// and nothing after, e.g. `  Stage Scripts:`. Used in §7 to wrap the file
+// listings that follow each heading into a card.
+const FILE_SECTION_HEAD = /^(\s+)([A-Z][\w &\-/]+):\s*$/;
 // Card titles — wrap a run of subsequent blocks in a single bordered card.
 const CARD_RECOMMENDATION = /^RECOMMENDATION\s+(\d+)\s+—\s+(.+?):?\s*$/;
 const CARD_CHALLENGE = /^\s+Challenge\s+(\d+\.\d+)\s+—\s+(.+)$/;
@@ -271,8 +279,9 @@ function sniffColTable(
 
   const sepLine = lines[i + 1];
   if (!sepLine) return null;
-  // Separator line: predominantly hyphens (allow leading whitespace).
-  if (!/^\s*-{6,}\s*$/.test(sepLine)) return null;
+  // Separator line: predominantly hyphens or box-drawing dashes.
+  // (Some tables use `─` instead of `-` — e.g. §5.2 SHAP feature ranking.)
+  if (!/^\s*[-─]{6,}\s*$/.test(sepLine)) return null;
 
   // Determine column boundaries from the header by recording the start
   // column of each header field in the original (untrimmed) header line.
@@ -394,11 +403,37 @@ function sniffKvTable(
 function sniffLabelParagraph(
   lines: string[],
   i: number
-): { label: string; body: string[]; endIdx: number } | null {
-  const m = lines[i]?.match(LABELED_PROSE);
-  if (!m) return null;
-  const labelIndent = m[1].length;
-  const label = m[2];
+): { label: string; body: string[]; badge?: string; endIdx: number } | null {
+  // Try the three label patterns. Each yields (indent, label, body, badge?).
+  const line = lines[i];
+  if (!line) return null;
+  let labelIndent: number;
+  let label: string;
+  let firstBody: string;
+  let badge: string | undefined;
+
+  const hyp = line.match(HYPOTHESIS_LINE);
+  const obj = line.match(OBJECTIVE_LINE);
+  const std = line.match(LABELED_PROSE);
+  if (hyp) {
+    labelIndent = hyp[1].length;
+    label = hyp[2];
+    badge = hyp[3];
+    firstBody = hyp[4];
+  } else if (obj) {
+    labelIndent = obj[1].length;
+    label = obj[2];
+    badge = obj[3];
+    firstBody = obj[4];
+  } else if (std) {
+    labelIndent = std[1].length;
+    label = std[2];
+    firstBody = std[3];
+  } else {
+    return null;
+  }
+  // Replicate the original `m` shape so the rest of the function works.
+  const m = [line, " ".repeat(labelIndent), label, firstBody] as RegExpMatchArray;
   // `body` is a list of paragraphs (split on blank lines), each paragraph a
   // single string. Continuation lines at indent ≥ labelIndent are joined into
   // the current paragraph.
@@ -416,7 +451,7 @@ function sniffLabelParagraph(
       if (!peek || !peek.trim()) break;
       const peekIndent = peek.match(/^\s*/)?.[0].length ?? 0;
       if (peekIndent < labelIndent) break;
-      if (LABELED_PROSE.test(peek)) break;
+      if (LABELED_PROSE.test(peek) || HYPOTHESIS_LINE.test(peek) || OBJECTIVE_LINE.test(peek)) break;
       if (/^\s*[─=]{4,}/.test(peek)) break;
       if (/^\s*──\s/.test(peek)) break;
       if (CARD_RECOMMENDATION.test(peek.trim())) break;
@@ -427,7 +462,7 @@ function sniffLabelParagraph(
     }
     const ind = ln.match(/^\s*/)?.[0].length ?? 0;
     if (ind < labelIndent) break;
-    if (LABELED_PROSE.test(ln)) break;
+    if (LABELED_PROSE.test(ln) || HYPOTHESIS_LINE.test(ln) || OBJECTIVE_LINE.test(ln)) break;
     if (/^\s*[─=]{4,}/.test(ln)) break;
     if (CARD_RECOMMENDATION.test(ln.trim())) break;
     if (CARD_CHALLENGE.test(ln)) break;
@@ -443,7 +478,42 @@ function sniffLabelParagraph(
   }
   // Drop trailing empty paragraphs left from blank-line markers.
   while (paragraphs.length && !paragraphs[paragraphs.length - 1]) paragraphs.pop();
-  return { label, body: paragraphs, endIdx: j };
+  return { label, body: paragraphs, badge, endIdx: j };
+}
+
+// Sniff a `  Section Name:\n    file  desc\n    file  desc\n…` block. Used
+// in §7 (Project File Outputs) and similar places. Returns a heading + a
+// list of {key, value} rows so the renderer can wrap the whole thing in a
+// card with the heading at top.
+function sniffFileGroup(
+  lines: string[],
+  i: number
+): { heading: string; items: { key: string; value: string }[]; endIdx: number } | null {
+  const head = lines[i]?.match(FILE_SECTION_HEAD);
+  if (!head) return null;
+  const headIndent = head[1].length;
+  const heading = head[2];
+  // Need at least 2 file rows underneath.
+  const items: { key: string; value: string }[] = [];
+  let j = i + 1;
+  while (j < lines.length) {
+    const ln = lines[j];
+    if (!ln.trim()) {
+      // Allow a single blank line to separate file groups within the section
+      // — but only if we haven't started collecting items yet.
+      if (items.length === 0) { j++; continue; }
+      break;
+    }
+    const ind = ln.match(/^\s*/)?.[0].length ?? 0;
+    if (ind <= headIndent) break;
+    // File-line shape: `    filename   description`
+    const m = ln.match(/^\s+(\S+)\s{2,}(\S.*)$/);
+    if (!m) break;
+    items.push({ key: m[1], value: m[2].trim() });
+    j++;
+  }
+  if (items.length < 2) return null;
+  return { heading, items, endIdx: j };
 }
 
 function parseReport(raw: string): ParsedReport {
@@ -771,8 +841,28 @@ function parseReport(raw: string): ParsedReport {
         kind: "labelparagraph",
         label: lp.label,
         body: lp.body,
+        badge: lp.badge,
       });
       i = lp.endIdx;
+      continue;
+    }
+
+    // §7-style file-section header (`  Stage Scripts:`) followed by a
+    // tabular file listing. Wrap heading + listing in a single card.
+    const fg = sniffFileGroup(lines, i);
+    if (fg) {
+      flushAll();
+      blocksTarget().push({ kind: "cardClose" });
+      blocksTarget().push({
+        kind: "cardOpen",
+        title: fg.heading,
+      });
+      blocksTarget().push({
+        kind: "kvtable",
+        items: fg.items.map((it) => ({ key: it.key, value: it.value })),
+      });
+      blocksTarget().push({ kind: "cardClose" });
+      i = fg.endIdx;
       continue;
     }
 
@@ -955,7 +1045,7 @@ function parseAsciiTable(raw: string): ParsedTable | null {
 function BlockRender({ block }: { block: Block }) {
   if (block.kind === "p") {
     return (
-      <p className="text-[17px] leading-[1.75] text-slate-300 [overflow-wrap:anywhere]">
+      <p className="text-[16.5px] leading-[1.75] text-slate-300 [overflow-wrap:anywhere]">
         {block.text}
       </p>
     );
@@ -1112,18 +1202,56 @@ function BlockRender({ block }: { block: Block }) {
     );
   }
   if (block.kind === "labelparagraph") {
-    // Per-label colour. Falls back to slate for unknown labels.
-    const palette: Record<string, { border: string; bg: string; tag: string }> = {
-      Evidence: { border: "border-cyan-500/25", bg: "bg-cyan-500/[0.04]", tag: "text-cyan-300/90" },
-      Action: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
-      Problem: { border: "border-rose-500/25", bg: "bg-rose-500/[0.04]", tag: "text-rose-300/90" },
-      Solution: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
-      Fix: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
-      Note: { border: "border-slate-700/60", bg: "bg-slate-800/30", tag: "text-slate-400" },
-      Rationale: { border: "border-slate-700/60", bg: "bg-slate-800/30", tag: "text-slate-400" },
-      Caveat: { border: "border-amber-500/25", bg: "bg-amber-500/[0.04]", tag: "text-amber-300/90" },
+    type Palette = { border: string; bg: string; tag: string; pill: string };
+    const palette: Record<string, Palette> = {
+      Evidence: {
+        border: "border-cyan-500/25", bg: "bg-cyan-500/[0.04]",
+        tag: "text-cyan-300/90", pill: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
+      },
+      Action: {
+        border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]",
+        tag: "text-emerald-300/90", pill: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+      },
+      Problem: {
+        border: "border-rose-500/25", bg: "bg-rose-500/[0.04]",
+        tag: "text-rose-300/90", pill: "border-rose-500/40 bg-rose-500/10 text-rose-200",
+      },
+      Solution: {
+        border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]",
+        tag: "text-emerald-300/90", pill: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+      },
+      Fix: {
+        border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]",
+        tag: "text-emerald-300/90", pill: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+      },
+      Note: {
+        border: "border-slate-700/60", bg: "bg-slate-800/30",
+        tag: "text-slate-400", pill: "border-slate-700 bg-slate-800/60 text-slate-300",
+      },
+      Rationale: {
+        border: "border-slate-700/60", bg: "bg-slate-800/30",
+        tag: "text-slate-400", pill: "border-slate-700 bg-slate-800/60 text-slate-300",
+      },
+      Caveat: {
+        border: "border-amber-500/25", bg: "bg-amber-500/[0.04]",
+        tag: "text-amber-300/90", pill: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+      },
     };
-    const p = palette[block.label] ?? palette["Note"];
+    // For HN / Objective labels, the badge text drives the colour.
+    const isHN = /^H\d+$/.test(block.label);
+    const isObj = /^Objective\s+\d+$/.test(block.label);
+    let p: Palette = palette["Note"];
+    if (palette[block.label]) {
+      p = palette[block.label];
+    } else if (isHN) {
+      const badge = (block.badge || "").toLowerCase();
+      if (badge.includes("rejected") || badge.includes("contradict")) p = palette["Problem"];
+      else if (badge.includes("supported") || badge.includes("confirmed")) p = palette["Solution"];
+      else if (badge.includes("new finding") || badge.includes("partial")) p = palette["Evidence"];
+      else p = palette["Note"];
+    } else if (isObj) {
+      p = palette["Evidence"];
+    }
     return (
       <div
         className={cn(
@@ -1132,13 +1260,25 @@ function BlockRender({ block }: { block: Block }) {
           p.bg
         )}
       >
-        <div
-          className={cn(
-            "mb-2 font-mono text-[10px] uppercase tracking-[0.2em]",
-            p.tag
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span
+            className={cn(
+              "font-mono text-[10px] uppercase tracking-[0.2em]",
+              p.tag
+            )}
+          >
+            {block.label}
+          </span>
+          {block.badge && (
+            <span
+              className={cn(
+                "rounded-md border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em]",
+                p.pill
+              )}
+            >
+              {block.badge}
+            </span>
           )}
-        >
-          {block.label}
         </div>
         <div className="space-y-3 text-[15px] leading-[1.7] text-slate-200 [overflow-wrap:anywhere]">
           {block.body.map((para, i) => (
