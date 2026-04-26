@@ -4,7 +4,9 @@
 // production fallback exists so the deploy keeps working even if the env
 // var hasn't been set yet in Vercel project settings.
 const PROD_FALLBACK = "https://wacmr-api.onrender.com";
-const API_BASE = "";
+const API_BASE = typeof window !== "undefined" 
+  ? (process.env.NEXT_PUBLIC_API_URL || (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? PROD_FALLBACK : ""))
+  : (process.env.NEXT_PUBLIC_API_URL || "");
 
 export async function fetchAPI(path: string, options?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, options);
