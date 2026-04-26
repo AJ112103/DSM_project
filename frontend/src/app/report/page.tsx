@@ -30,6 +30,9 @@ type Block =
   | { kind: "coltable"; header: string[]; rows: string[][] }
   | { kind: "kvtable"; items: { key: string; value: string; badge?: string }[] }
   | { kind: "minihead"; text: string }
+  | { kind: "labelparagraph"; label: string; body: string[] }
+  | { kind: "cardOpen"; title: string; subtitle?: string }
+  | { kind: "cardClose" }
   | { kind: "code"; raw: string };
 
 interface Figure {
@@ -179,7 +182,28 @@ const SEP_DASHES = /^[─-]{40,}$/;
 const SUBSECTION = /^──\s+(.+?)\s*─{2,}?\s*$/;
 const MAJOR_NUM = /^\s*(\d+)\.\s+(.+?)(?:\s*\(.*\))?\s*$/;
 const SUB_NUM = /^(\d+\.\d+)\s+(.+?)$/;
-const METRIC_LINE = /^\s{2,}([A-Za-z][A-Za-z0-9 ./\-_]+?)\s*[:=]\s+([^\s].*)$/;
+const METRIC_LINE = /^\s{2,}([A-Za-z][A-Za-z0-9 ./\-_()=]+?)\s*[:=]\s+([^\s].*)$/;
+// Labels that introduce a multi-line prose block (Evidence, Action, Problem,
+// Solution, etc.). When matched, the entire labelled block — header line +
+// every continuation line at the same or deeper indent — is wrapped into a
+// single bordered card so the body can't visually leak out.
+const LABELED_PROSE_LABELS = [
+  "Evidence",
+  "Action",
+  "Problem",
+  "Solution",
+  "Fix",
+  "Note",
+  "Rationale",
+  "Caveat",
+];
+const LABELED_PROSE = new RegExp(
+  `^(\\s+)(${LABELED_PROSE_LABELS.join("|")}):\\s+(\\S.*)$`
+);
+// Card titles — wrap a run of subsequent blocks in a single bordered card.
+const CARD_RECOMMENDATION = /^RECOMMENDATION\s+(\d+)\s+—\s+(.+?):?\s*$/;
+const CARD_CHALLENGE = /^\s+Challenge\s+(\d+\.\d+)\s+—\s+(.+)$/;
+const CARD_STAGE = /^STAGE\s+(\d+)\s+—\s+(.+)$/;
 // Column-aligned file/description pairs, e.g.:
 //   "    stage1_fetch_api_ndap.py          Data collection from NDAP API"
 // Indented 4+ spaces, then a word, then 3+ spaces of alignment padding,
@@ -362,6 +386,64 @@ function sniffKvTable(
   }
   if (items.length < 2) return null;
   return { items, endIdx: j };
+}
+
+// Sniff a labelled-prose block: `  Evidence: first sentence …\n  continuation\n  more continuation\n`.
+// The whole thing gets bound into one bordered card so the continuation can't
+// visually float outside the box.
+function sniffLabelParagraph(
+  lines: string[],
+  i: number
+): { label: string; body: string[]; endIdx: number } | null {
+  const m = lines[i]?.match(LABELED_PROSE);
+  if (!m) return null;
+  const labelIndent = m[1].length;
+  const label = m[2];
+  // `body` is a list of paragraphs (split on blank lines), each paragraph a
+  // single string. Continuation lines at indent ≥ labelIndent are joined into
+  // the current paragraph.
+  const paragraphs: string[] = [m[3].trim()];
+  let j = i + 1;
+  let inBlank = false;
+  while (j < lines.length) {
+    const ln = lines[j];
+    if (!ln.trim()) {
+      // A blank line ends the current paragraph but the labelled block can
+      // continue across one blank line if the *next* non-blank line is also
+      // indented and isn't itself a new label / divider / title.
+      inBlank = true;
+      const peek = lines[j + 1];
+      if (!peek || !peek.trim()) break;
+      const peekIndent = peek.match(/^\s*/)?.[0].length ?? 0;
+      if (peekIndent < labelIndent) break;
+      if (LABELED_PROSE.test(peek)) break;
+      if (/^\s*[─=]{4,}/.test(peek)) break;
+      if (/^\s*──\s/.test(peek)) break;
+      if (CARD_RECOMMENDATION.test(peek.trim())) break;
+      if (CARD_CHALLENGE.test(peek)) break;
+      if (CARD_STAGE.test(peek.trim())) break;
+      paragraphs.push(""); // marker — next line starts a new paragraph
+      j++; continue;
+    }
+    const ind = ln.match(/^\s*/)?.[0].length ?? 0;
+    if (ind < labelIndent) break;
+    if (LABELED_PROSE.test(ln)) break;
+    if (/^\s*[─=]{4,}/.test(ln)) break;
+    if (CARD_RECOMMENDATION.test(ln.trim())) break;
+    if (CARD_CHALLENGE.test(ln)) break;
+    if (CARD_STAGE.test(ln.trim())) break;
+    if (inBlank && paragraphs[paragraphs.length - 1] === "") {
+      paragraphs[paragraphs.length - 1] = ln.trim();
+    } else {
+      paragraphs[paragraphs.length - 1] =
+        (paragraphs[paragraphs.length - 1] + " " + ln.trim()).trim();
+    }
+    inBlank = false;
+    j++;
+  }
+  // Drop trailing empty paragraphs left from blank-line markers.
+  while (paragraphs.length && !paragraphs[paragraphs.length - 1]) paragraphs.pop();
+  return { label, body: paragraphs, endIdx: j };
 }
 
 function parseReport(raw: string): ParsedReport {
@@ -628,6 +710,71 @@ function parseReport(raw: string): ParsedReport {
 
     // A non-indented / clearly new prose line while a list is open ends it.
     if (listKind) flushList();
+
+    // Card titles — wrap a contiguous run of subsequent blocks in a single
+    // bordered card. Two patterns: RECOMMENDATION at column 0 (preceded by
+    // full-width dashes) and Challenge with 2-space indent (followed by a
+    // short dash separator).
+    const recMatch = trimmed.match(CARD_RECOMMENDATION);
+    if (recMatch) {
+      flushAll();
+      blocksTarget().push({
+        kind: "cardClose", // close any previous open card first
+      });
+      blocksTarget().push({
+        kind: "cardOpen",
+        title: `Recommendation ${recMatch[1]}`,
+        subtitle: recMatch[2].trim(),
+      });
+      i++; continue;
+    }
+    const chMatch = line.match(CARD_CHALLENGE);
+    if (chMatch) {
+      flushAll();
+      blocksTarget().push({ kind: "cardClose" });
+      blocksTarget().push({
+        kind: "cardOpen",
+        title: `Challenge ${chMatch[1]}`,
+        subtitle: chMatch[2].trim(),
+      });
+      // Skip the short dash separator that follows challenge titles.
+      i++;
+      if (i < lines.length && /^\s*[─-]{20,}\s*$/.test(lines[i])) i++;
+      continue;
+    }
+    // STAGE N — TITLE: render as a horizontal section divider with label.
+    // Also closes any open card so subsequent challenges start clean.
+    const stMatch = trimmed.match(CARD_STAGE);
+    if (stMatch) {
+      flushAll();
+      blocksTarget().push({ kind: "cardClose" });
+      blocksTarget().push({
+        kind: "minihead",
+        text: `Stage ${stMatch[1]} — ${stMatch[2].trim()}`,
+      });
+      i++; continue;
+    }
+    // Full-width divider closes any in-flight card.
+    if (/^[─-]{60,}$/.test(trimmed)) {
+      flushAll();
+      blocksTarget().push({ kind: "cardClose" });
+      i++; continue;
+    }
+
+    // Labelled multi-line prose (Evidence/Action/Problem/Solution/etc.).
+    // Catch this BEFORE METRIC_LINE so the body can't get truncated to one
+    // line and bleed into prose underneath.
+    const lp = sniffLabelParagraph(lines, i);
+    if (lp) {
+      flushAll();
+      blocksTarget().push({
+        kind: "labelparagraph",
+        label: lp.label,
+        body: lp.body,
+      });
+      i = lp.endIdx;
+      continue;
+    }
 
     // Column-aligned plain-text TABLE: "Header  Header2  Header3" then a
     // dash separator then ≥1 data row with similar column boundaries.
@@ -964,6 +1111,48 @@ function BlockRender({ block }: { block: Block }) {
       </div>
     );
   }
+  if (block.kind === "labelparagraph") {
+    // Per-label colour. Falls back to slate for unknown labels.
+    const palette: Record<string, { border: string; bg: string; tag: string }> = {
+      Evidence: { border: "border-cyan-500/25", bg: "bg-cyan-500/[0.04]", tag: "text-cyan-300/90" },
+      Action: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
+      Problem: { border: "border-rose-500/25", bg: "bg-rose-500/[0.04]", tag: "text-rose-300/90" },
+      Solution: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
+      Fix: { border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]", tag: "text-emerald-300/90" },
+      Note: { border: "border-slate-700/60", bg: "bg-slate-800/30", tag: "text-slate-400" },
+      Rationale: { border: "border-slate-700/60", bg: "bg-slate-800/30", tag: "text-slate-400" },
+      Caveat: { border: "border-amber-500/25", bg: "bg-amber-500/[0.04]", tag: "text-amber-300/90" },
+    };
+    const p = palette[block.label] ?? palette["Note"];
+    return (
+      <div
+        className={cn(
+          "my-4 overflow-hidden rounded-xl border p-5 print:break-inside-avoid",
+          p.border,
+          p.bg
+        )}
+      >
+        <div
+          className={cn(
+            "mb-2 font-mono text-[10px] uppercase tracking-[0.2em]",
+            p.tag
+          )}
+        >
+          {block.label}
+        </div>
+        <div className="space-y-3 text-[15px] leading-[1.7] text-slate-200 [overflow-wrap:anywhere]">
+          {block.body.map((para, i) => (
+            <p key={i}>{para}</p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (block.kind === "cardOpen" || block.kind === "cardClose") {
+    // Cards are wrapped by BlockGroup; if we ever render one in isolation,
+    // emit nothing rather than a stray div.
+    return null;
+  }
   if (block.kind === "callout") {
     const config = {
       finding: {
@@ -1028,13 +1217,75 @@ function BlockRender({ block }: { block: Block }) {
   return null;
 }
 
+// First pass: turn the flat block list into a tree by wrapping every
+// `cardOpen … cardClose` run in a synthetic `card` group. Cards have inner
+// blocks rendered recursively by another BlockGroup.
+type CardGroup = {
+  kind: "card";
+  title: string;
+  subtitle?: string;
+  blocks: Block[];
+};
+
+function buildCards(blocks: Block[]): Array<Block | CardGroup> {
+  const out: Array<Block | CardGroup> = [];
+  let card: CardGroup | null = null;
+  for (const b of blocks) {
+    if (b.kind === "cardOpen") {
+      if (card) out.push(card);
+      card = { kind: "card", title: b.title, subtitle: b.subtitle, blocks: [] };
+      continue;
+    }
+    if (b.kind === "cardClose") {
+      if (card) {
+        // Drop empty cards (the parser emits cardClose markers eagerly).
+        if (card.blocks.length) out.push(card);
+        card = null;
+      }
+      continue;
+    }
+    if (card) card.blocks.push(b);
+    else out.push(b);
+  }
+  if (card && card.blocks.length) out.push(card);
+  return out;
+}
+
+function MetricGroupRender({
+  items,
+}: {
+  items: { label: string; value: string }[];
+}) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-5 py-4">
+      {items.map((m, j) => (
+        <div
+          key={j}
+          className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm tabular-nums"
+        >
+          <span className="min-w-0 break-words text-slate-400">{m.label}</span>
+          <span className="hidden h-px min-w-[2rem] flex-1 self-center border-t border-dashed border-slate-800 sm:block" />
+          <span className="min-w-0 break-words text-slate-100 [overflow-wrap:anywhere]">
+            {m.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BlockGroup({ blocks }: { blocks: Block[] }) {
+  // Step 1: wrap cardOpen…cardClose runs into card groups.
+  const cardWrapped = buildCards(blocks);
+  // Step 2: coalesce consecutive metric blocks into metric-group.
   const groups: Array<
-    { kind: "metric-group"; items: { label: string; value: string }[] } | Block
+    | { kind: "metric-group"; items: { label: string; value: string }[] }
+    | Block
+    | CardGroup
   > = [];
   let buf: { label: string; value: string }[] = [];
-  for (const b of blocks) {
-    if (b.kind === "metric") {
+  for (const b of cardWrapped) {
+    if ("kind" in b && b.kind === "metric") {
       buf.push({ label: b.label, value: b.value });
     } else {
       if (buf.length) {
@@ -1048,29 +1299,35 @@ function BlockGroup({ blocks }: { blocks: Block[] }) {
 
   return (
     <div className="space-y-5">
-      {groups.map((g, i) =>
-        "kind" in g && g.kind === "metric-group" ? (
-          <div
-            key={i}
-            className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-5 py-4"
-          >
-            {g.items.map((m, j) => (
-              <div
-                key={j}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm tabular-nums"
-              >
-                <span className="min-w-0 break-words text-slate-400">{m.label}</span>
-                <span className="hidden h-px min-w-[2rem] flex-1 self-center border-t border-dashed border-slate-800 sm:block" />
-                <span className="min-w-0 break-words text-slate-100 [overflow-wrap:anywhere]">
-                  {m.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <BlockRender key={i} block={g as Block} />
-        )
-      )}
+      {groups.map((g, i) => {
+        if ("kind" in g && g.kind === "metric-group") {
+          return <MetricGroupRender key={i} items={g.items} />;
+        }
+        if ("kind" in g && g.kind === "card") {
+          return (
+            <section
+              key={i}
+              className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 print:break-inside-avoid"
+            >
+              <header className="mb-4 border-b border-slate-800/70 pb-3">
+                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-400/90">
+                  {g.title}
+                </div>
+                {g.subtitle && (
+                  <div
+                    className="mt-1 text-[20px] leading-snug text-white [overflow-wrap:anywhere]"
+                    style={{ fontFamily: "var(--font-instrument-serif)" }}
+                  >
+                    {g.subtitle}
+                  </div>
+                )}
+              </header>
+              <BlockGroup blocks={g.blocks} />
+            </section>
+          );
+        }
+        return <BlockRender key={i} block={g as Block} />;
+      })}
     </div>
   );
 }
