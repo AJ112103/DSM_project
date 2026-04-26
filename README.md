@@ -165,8 +165,6 @@ DSM_project/
 
 ## DSM Guidelines Coverage
 
-This project was structured against the DSM project expectations in `DSM Project - Guidelines and Expectations.pdf`.
-
 | Guideline area | How this project addresses it |
 | --- | --- |
 | Problem statement | Studies whether India's Weighted Average Call Money Rate (WACMR), the overnight interbank funding rate, can be understood and forecast one week ahead from monetary policy, liquidity, market, and event data. The objective is to explain transmission of RBI policy into actual overnight funding conditions and produce evidence-backed operational insights. |
