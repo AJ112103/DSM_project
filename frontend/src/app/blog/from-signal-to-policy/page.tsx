@@ -53,7 +53,7 @@ export default function FromSignalToPolicyPost() {
       />
 
       <AuthorCard
-        authors={[{ name: "Arnav and Aamer", role: "Data Science & Management" }]}
+        authors={[{ name: "Arnav", role: "Data Science & Management" }]}
       />
 
       <div className="mt-8 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
@@ -138,11 +138,11 @@ export default function FromSignalToPolicyPost() {
               </p>
               <p>
                 <strong>Second, March 2020 was a regime break, and it
-                outlasted the pandemic.</strong> K-Means did not know about
+                  outlasted the pandemic.</strong> K-Means did not know about
                 COVID; it found the break in the feature geometry. The 2022–24
                 re-tightening did not return the system to its pre-2020 state.
                 <strong> Third, the model&apos;s response function is
-                asymmetric</strong> — predicted cuts transmit faster than
+                  asymmetric</strong> — predicted cuts transmit faster than
                 predicted hikes of equal magnitude. This is a learned pattern
                 from the data, not an assumption.
               </p>
@@ -162,7 +162,7 @@ export default function FromSignalToPolicyPost() {
               <H2 id="levers">4. Three operational levers</H2>
               <p>
                 <strong>Publish the WACMR–Repo spread as a headline
-                statistic.</strong> Our SHAP analysis is unambiguous: the
+                  statistic.</strong> Our SHAP analysis is unambiguous: the
                 spread is a top-five predictor of next week&apos;s WACMR; the
                 level alone hides regime-conditional behaviour. Surfacing the
                 spread on the RBI&apos;s weekly statistical supplement, and
@@ -173,7 +173,7 @@ export default function FromSignalToPolicyPost() {
               </p>
               <p>
                 <strong>Adopt regime-aware briefings inside the policy
-                desk.</strong> The post-2020 regime is not just a level shift
+                  desk.</strong> The post-2020 regime is not just a level shift
                 — variances, spread distributions, and feature importances
                 all changed. Internal MPC documents and RBI bulletin
                 commentary should explicitly state which regime is currently
@@ -183,7 +183,7 @@ export default function FromSignalToPolicyPost() {
               </p>
               <p>
                 <strong>Spend the communication budget
-                asymmetrically.</strong> Our counterfactual response curve
+                  asymmetrically.</strong> Our counterfactual response curve
                 shows hikes transmitting more sluggishly than cuts. If the
                 goal of MPC communication is to anchor expectations, the
                 marginal speech, footnote, and press conference is worth more

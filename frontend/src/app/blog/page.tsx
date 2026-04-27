@@ -54,11 +54,17 @@ export default function BlogIndexPage() {
         </p>
       </header>
 
+      <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
+        <div className="h-px flex-1 bg-slate-800" />
+        main blog
+        <div className="h-px flex-1 bg-slate-800" />
+      </div>
+
       <div className="divide-y divide-slate-800">
         <BlogCard post={FEATURED_POST} />
       </div>
 
-      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+      <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
         <div className="h-px flex-1 bg-slate-800" />
         Further essays
         <div className="h-px flex-1 bg-slate-800" />

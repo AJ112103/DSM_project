@@ -51,7 +51,7 @@ export default function WhatWedBuildNextPost() {
       />
 
       <AuthorCard
-        authors={[{ name: "Arnav and Aamer", role: "Data Science & Management" }]}
+        authors={[{ name: "Aamer", role: "Data Science & Management" }]}
       />
 
       <div className="mt-8 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
