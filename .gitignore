@@ -42,5 +42,3 @@ frontend/inspect_report.mjs
 *.fls
 *.fdb_latexmk
 *.synctex.gz
-
-/presentation

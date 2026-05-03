@@ -1174,7 +1174,7 @@ function BlockRender({ block }: { block: Block }) {
               key={i}
               className="grid grid-cols-1 gap-x-5 gap-y-1 px-4 py-2.5 sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)_auto] sm:items-baseline"
             >
-              <code className="font-mono text-[12.5px] tabular-nums text-cyan-300/90 [overflow-wrap:anywhere]">
+              <code className="font-mono text-[12.5px] tabular-nums text-cyan-300 [overflow-wrap:anywhere]">
                 {item.key}
               </code>
               <span className="text-slate-300 [overflow-wrap:anywhere]">
@@ -1206,7 +1206,7 @@ function BlockRender({ block }: { block: Block }) {
     const palette: Record<string, Palette> = {
       Evidence: {
         border: "border-cyan-500/25", bg: "bg-cyan-500/[0.04]",
-        tag: "text-cyan-300/90", pill: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
+        tag: "text-cyan-300", pill: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
       },
       Action: {
         border: "border-emerald-500/25", bg: "bg-emerald-500/[0.04]",
