@@ -12,7 +12,7 @@ spread as a real-time barometer}
 \textbf{Evidence.} The engineered \texttt{spread\_wacmr\_minus\_repo}
 is the fourth-ranked SHAP feature, with mean absolute SHAP 0.0725, a
 larger predictive weight than the MSF Rate itself (0.0585). In
-Regime 1 (Accommodation), the average spread is $-0.19$ percentage
+Regime 0 (Accommodation), the average spread is $-0.19$ percentage
 points; persistent positive spreads above $+0.10$ percentage points
 have historically preceded liquidity-deficit interventions.
 
@@ -32,9 +32,11 @@ positions to model regime confidence}
 \textbf{Evidence.} The walk-forward XGBoost achieves 70.9\%
 directional accuracy and RMSE 0.1019 across 389 out-of-sample weeks.
 The regime-conditional SHAP analysis shows that absolute SHAP
-magnitudes are roughly twice as large in the tightening regime as in
-the accommodation regime, which means the model is materially more
-confident inside Regime 1 than inside Regime 0.
+magnitudes are roughly twice as large in the accommodation regime as
+in the tightening regime, which means the model's directional
+forecasts are materially higher-quality inside Regime 0
+(\texttt{target\_lag1}'s SHAP value 0.689) than inside Regime 1
+(0.344).
 
 \textbf{Recommendation.} Use the model's directional forecast as a
 trade signal, but size positions proportional to the cluster

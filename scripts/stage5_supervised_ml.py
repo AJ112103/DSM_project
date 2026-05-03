@@ -325,9 +325,12 @@ def run_stage4() -> None:
     print(f"  Saved: {pred_path}")
 
     # ── 4.3  Regime-Specific SHAP Analysis ───────────────────────────────────
-    # Split the 545 SHAP rows by regime label to prove mechanical difference:
-    #   Regime 0 (Accommodation) → model should lean on Reverse Repo (lower bound)
-    #   Regime 1 (Tightening) → model should lean on MSF Rate (upper bound)
+    # Split the 545 SHAP rows by regime label. The fitted model shows:
+    #   Regime 0 (Accommodation): target_lag1 dominates (~0.69), all SHAP
+    #     magnitudes ~2x larger; rates are stable so recent history is the
+    #     strongest signal and the model approaches an AR(1) on WACMR.
+    #   Regime 1 (Tightening): no single feature dominates; corridor rates
+    #     and AR lags contribute more uniformly with smaller magnitudes.
     print("\n[4.3] Regime-Specific SHAP Analysis ...")
 
     regime_labels = df["regime_label"].values   # 545 values, aligned with shap_values
@@ -335,7 +338,8 @@ def run_stage4() -> None:
     fig, axes = plt.subplots(1, 2, figsize=(18, 8))
     fig.suptitle(
         "Regime-Specific SHAP — Top 12 Features per Monetary Regime\n"
-        "Proving mechanical MSF-dominance (tight) vs Reverse-Repo-dominance (surplus)",
+        "Autoregressive dominance in Accommodation (target_lag1: 0.69); "
+        "uniform corridor reliance in Tightening (target_lag1: 0.34)",
         fontsize=13, fontweight="bold"
     )
 

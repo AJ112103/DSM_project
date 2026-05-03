@@ -300,24 +300,28 @@ environment.
 \includegraphics[width=\linewidth]{../../visualizations/shap_by_regime.png}
 \caption{Top-12 SHAP feature importance, stratified by regime. Two
 substantive shifts are visible: the Reverse Repo Rate rises from
-rank 12 to rank 9 in the accommodation regime, and the absolute SHAP
-magnitude of the autoregressive lag halves from Tightening to
-Accommodation.}
+rank 12 in the accommodation regime to rank 9 in the tightening
+regime, and the absolute SHAP magnitude of the autoregressive lag
+doubles from Tightening to Accommodation
+(\texttt{target\_lag1}: 0.344 versus 0.689).}
 \label{fig:shap-by-regime}
 \end{figure}
 
 Two substantive findings drop out of this comparison. First, the
-Reverse Repo (and post-2022 the SDF) Rate rises sharply in importance
-in the accommodation regime, which is exactly what monetary theory
-predicts: in surplus liquidity conditions the binding constraint on
-WACMR is the lower corridor floor rather than the upper ceiling.
-Second, the absolute SHAP magnitude of every feature is roughly twice
-as large in the tightening regime than in the accommodation regime
-(\texttt{target\_lag1}'s SHAP value is 0.689 versus 0.344). This
-quantifies the qualitative observation made in Section~\ref{sec:eda}:
-WACMR is markedly more predictable from its own recent history during
-tightening periods than during accommodation, when discretionary RBI
-operations introduce more week-to-week noise.
+absolute SHAP magnitude of every feature is roughly twice as large
+in the accommodation regime than in the tightening regime
+(\texttt{target\_lag1}'s SHAP value is 0.689 inside Regime 0 versus
+0.344 inside Regime 1). Inside Accommodation, rates are stable,
+recent history becomes the strongest single signal, and the model
+effectively reduces to a feature-weighted AR(1) on WACMR with
+\texttt{target\_lag1} carrying the bulk of the prediction. Inside
+Tightening, no single feature dominates: predictions rely more
+uniformly on the corridor rates and the autoregressive lag, with
+smaller absolute contributions from each. Second, the Reverse Repo
+(and post-2022 the SDF) Rate sits higher in the SHAP ranking inside
+the tightening regime (rank 9) than inside the accommodation regime
+(rank 12), reflecting the model's reliance on the explicit corridor
+when active rate moves require closer week-to-week policy tracking.
 
 \subsubsection{Residual analysis and calendar effects}
 
