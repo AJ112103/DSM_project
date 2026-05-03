@@ -273,7 +273,7 @@ const EXPLORE = [
       "Long-form methodology, findings, and recommendations generated from the pipeline.",
     icon: FileText,
     href: "/report",
-    color: "orange",
+    color: "cyan",
   },
 ];
 
@@ -473,20 +473,22 @@ export default function OverviewPage() {
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {EXPLORE.map((card) => (
+          {EXPLORE.map((card) => {
+            const showAccent = Boolean(card.badge) || card.href === "/report";
+            return (
             <Link
               key={card.href}
               href={card.href}
               className={cn(
                 "group relative overflow-hidden rounded-2xl border bg-slate-900/40 p-5 transition-all hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900/70",
-                card.badge ? COLOR_ACCENT[card.color] : "border-slate-800"
+                showAccent ? COLOR_ACCENT[card.color] : "border-slate-800"
               )}
             >
               <div className="mb-4 flex items-start justify-between">
                 <div
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-lg",
-                    card.badge ? "bg-current/10" : "bg-slate-800"
+                    showAccent ? "bg-current/10" : "bg-slate-800"
                   )}
                 >
                   <card.icon className="h-5 w-5" />
@@ -506,7 +508,8 @@ export default function OverviewPage() {
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </section>
 
